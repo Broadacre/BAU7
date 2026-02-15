@@ -2,6 +2,21 @@
 
 An Ultima VII game engine/viewer for iOS, written in Objective-C.
 
+## Development Workflow
+
+**Testing on another machine:**
+```bash
+# On test machine with Xcode
+cd ~/BAU7  # or wherever you cloned it
+git pull origin main
+open BAU7.xcodeproj
+# Build and run (Cmd+R)
+```
+
+Changes pushed from development machine will be available after `git pull`.
+
+---
+
 ## Overview
 
 BAU7 loads and renders Ultima VII game data including tile maps, shapes, sprites, and supports AI-controlled actors with A* pathfinding. It also includes procedural map generation for random worlds, islands, and dungeons.

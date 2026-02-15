@@ -1,0 +1,30 @@
+
+BATABLE***
+Dragon Colors,
+Black,10,1,
+Blue, 11,2,
+Brass, 8,3,
+Bronze,7,4,
+Copper,12,5,
+Gold,4,6,
+Green,14,7,
+Red,14,8,
+Silver,7,9,
+White,13,10
+
+BATABLE***
+Dungeon Generation,
+Continues Straight,1,1,
+Left 90,1,2,
+Right 90,1,3,
+Dead End,1,4,
+Room,1,5,
+Pool,1,6
+
+BATABLE***
+River Generation,
+Continues Straight,30,1,
+Left 90,25,2,
+Right 90,25,3,
+Three Way Split,10,4,
+Four Way Split,5,5

@@ -1128,7 +1128,13 @@
                     </tabBar>
                     <connections>
                         <segue destination="qVz-4U-knY" kind="relationship" relationship="viewControllers" id="s4i-cz-sq9"/>
+                        <segue destination="ZL2-IY-pHl" kind="relationship" relationship="viewControllers" id="chunk-tab"/>
                         <segue destination="bTl-qD-Hep" kind="relationship" relationship="viewControllers" id="NAt-d0-Exu"/>
+                        <segue destination="6Ud-GE-EjH" kind="relationship" relationship="viewControllers" id="rando-tab"/>
+                        <segue destination="XCK-We-tSa" kind="relationship" relationship="viewControllers" id="pallet-tab"/>
+                        <segue destination="AY1-yF-QSm" kind="relationship" relationship="viewControllers" id="dungeon-tab"/>
+                        <segue destination="iIf-74-QIR" kind="relationship" relationship="viewControllers" id="newstage-tab"/>
+                        <segue destination="uab-sE-UfR" kind="relationship" relationship="viewControllers" id="island-tab"/>
                     </connections>
                 </tabBarController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="ksK-Bu-6t0" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>

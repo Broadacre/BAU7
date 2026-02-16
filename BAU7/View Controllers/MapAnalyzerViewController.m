@@ -130,14 +130,19 @@
         [analyzer analyze];
         
         NSString *results = [analyzer getResultsText];
-        NSDictionary *patterns = [analyzer exportPatterns];
+        
+        // Get patterns WITH terrain grid for visualization
+        NSDictionary *patternsWithGrid = [analyzer exportPatternsForVisualization:YES];
+        
+        // Get patterns WITHOUT terrain grid for JSON export
+        NSDictionary *patternsForJSON = [analyzer exportPatternsForVisualization:NO];
         
         // Generate heat map
-        UIImage *heatMap = [self generateHeatMapFromPatterns:patterns];
+        UIImage *heatMap = [self generateHeatMapFromPatterns:patternsWithGrid];
         
         dispatch_async(dispatch_get_main_queue(), ^{
             self.resultsTextView.text = results;
-            self.analysisResults = patterns;
+            self.analysisResults = patternsForJSON;
             self->_exportButton.enabled = YES;
             [self->_activityIndicator stopAnimating];
             self->_analyzeButton.enabled = YES;
@@ -148,7 +153,7 @@
             self.heatMapScrollView.contentSize = heatMap.size;
             self.heatMapScrollView.zoomScale = 1.0;
             
-            self.resultsTextView.accessibilityValue = [self JSONStringFromDictionary:patterns];
+            self.resultsTextView.accessibilityValue = [self JSONStringFromDictionary:self.analysisResults];
         });
     });
 }

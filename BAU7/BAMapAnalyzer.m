@@ -442,19 +442,28 @@ enum {
 
 - (NSDictionary *)exportPatterns
 {
-    // Convert terrain grid to NSData for export
-    NSData *terrainGridData = [NSData dataWithBytes:_terrainGrid length:192 * 192 * sizeof(int)];
+    return [self exportPatternsForVisualization:YES];
+}
+
+- (NSDictionary *)exportPatternsForVisualization:(BOOL)includeTerrainGrid
+{
+    NSMutableDictionary *patterns = [NSMutableDictionary dictionary];
     
-    return @{
-        @"cities": _cities,
-        @"terrain": _terrainStats,
-        @"terrainGrid": terrainGridData,
-        @"gridSize": @(192),
-        @"metadata": @{
-            @"mapSize": @{@"width": @(192*16), @"height": @(192*16)},
-            @"analyzedAt": [[NSDate date] description]
-        }
+    patterns[@"cities"] = _cities;
+    patterns[@"terrain"] = _terrainStats;
+    patterns[@"metadata"] = @{
+        @"mapSize": @{@"width": @(192*16), @"height": @(192*16)},
+        @"analyzedAt": [[NSDate date] description]
     };
+    
+    // Include terrain grid for heat map visualization, but not for JSON export
+    if (includeTerrainGrid && _terrainGrid) {
+        NSData *terrainGridData = [NSData dataWithBytes:_terrainGrid length:192 * 192 * sizeof(int)];
+        patterns[@"terrainGrid"] = terrainGridData;
+        patterns[@"gridSize"] = @(192);
+    }
+    
+    return patterns;
 }
 
 - (void)dealloc

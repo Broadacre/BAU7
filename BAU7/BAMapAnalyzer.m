@@ -34,6 +34,9 @@
 {
     NSLog(@"Starting map analysis...");
     
+    // Phase 0: Sample shapes to find what IDs are actually used
+    [self sampleShapeDistribution];
+    
     // Phase 1: Scan for building clusters (cities)
     [self scanForCities];
     
@@ -43,6 +46,46 @@
     // Phase 3: (Future) Detect roads, dungeons, etc.
     
     NSLog(@"Analysis complete! Found %lu cities", (unsigned long)[_cities count]);
+}
+
+- (void)sampleShapeDistribution
+{
+    NSMutableDictionary *shapeCounts = [NSMutableDictionary dictionary];
+    int sampleSize = 0;
+    
+    // Sample every 8th chunk to get a quick overview
+    for (int chunkY = 0; chunkY < 192; chunkY += 8) {
+        for (int chunkX = 0; chunkX < 192; chunkX += 8) {
+            
+            long chunkIndex = [_map chunkIDForChunkCoordinate:CGPointMake(chunkX, chunkY)];
+            U7MapChunk *mapChunk = [_map mapChunkAtIndex:chunkIndex];
+            if (!mapChunk) continue;
+            
+            U7Chunk *chunk = mapChunk->masterChunk;
+            if (!chunk || !chunk->chunkMap) continue;
+            
+            for (int i = 0; i < [chunk->chunkMap count]; i++) {
+                U7ChunkIndex *chunkIdx = chunk->chunkMap[i];
+                long shapeID = chunkIdx->shapeIndex;
+                
+                NSNumber *key = @(shapeID);
+                shapeCounts[key] = @([shapeCounts[key] intValue] + 1);
+                sampleSize++;
+            }
+        }
+    }
+    
+    // Log top 20 most common shapes
+    NSArray *sortedShapes = [shapeCounts keysSortedByValueUsingComparator:^NSComparisonResult(NSNumber *count1, NSNumber *count2) {
+        return [count2 compare:count1]; // Descending order
+    }];
+    
+    NSLog(@"Shape Distribution (sampled %d tiles):", sampleSize);
+    for (int i = 0; i < MIN(20, [sortedShapes count]); i++) {
+        NSNumber *shapeID = sortedShapes[i];
+        int count = [shapeCounts[shapeID] intValue];
+        NSLog(@"  Shape %ld: %d occurrences (%.1f%%)", [shapeID longValue], count, (count * 100.0 / sampleSize));
+    }
 }
 
 - (void)scanForCities

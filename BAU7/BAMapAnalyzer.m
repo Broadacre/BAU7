@@ -15,6 +15,7 @@
     NSMutableArray *_roads;
     NSMutableDictionary *_terrainStats;
     NSMutableSet *_visitedTiles;
+    int *_terrainGrid; // 192x192 grid of terrain types
 }
 
 - (instancetype)initWithMap:(U7Map *)map
@@ -26,6 +27,9 @@
         _roads = [NSMutableArray array];
         _terrainStats = [NSMutableDictionary dictionary];
         _visitedTiles = [NSMutableSet set];
+        
+        // Allocate terrain grid (192x192 chunks)
+        _terrainGrid = calloc(192 * 192, sizeof(int));
     }
     return self;
 }
@@ -305,20 +309,14 @@
 
 - (void)analyzeTerrainDistribution
 {
-    int mapWidth = 192 * 16;
-    int mapHeight = 192 * 16;
-    int sampleEvery = 16; // Sample every 16th tile to save time
+    NSLog(@"Analyzing terrain distribution...");
     
     NSMutableDictionary *counts = [NSMutableDictionary dictionary];
     int totalSamples = 0;
     
-    for (int worldY = 0; worldY < mapHeight; worldY += sampleEvery) {
-        for (int worldX = 0; worldX < mapWidth; worldX += sampleEvery) {
-            
-            int chunkX = worldX / 16;
-            int chunkY = worldY / 16;
-            int tileX = worldX % 16;
-            int tileY = worldY % 16;
+    // Scan each chunk and determine dominant terrain type
+    for (int chunkY = 0; chunkY < 192; chunkY++) {
+        for (int chunkX = 0; chunkX < 192; chunkX++) {
             
             long chunkIndex = [_map chunkIDForChunkCoordinate:CGPointMake(chunkX, chunkY)];
             U7MapChunk *mapChunk = [_map mapChunkAtIndex:chunkIndex];
@@ -327,17 +325,19 @@
             U7Chunk *chunk = mapChunk->masterChunk;
             if (!chunk || !chunk->chunkMap) continue;
             
-            // Get shape ID from chunk map
-            int tileIndex = tileY * 16 + tileX;
-            if (tileIndex >= [chunk->chunkMap count]) continue;
-            
-            U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
-            long shapeID = chunkIdx->shapeIndex;
-            
-            NSString *terrainName = [self terrainNameForShapeID:shapeID];
-            
-            counts[terrainName] = @([counts[terrainName] intValue] + 1);
-            totalSamples++;
+            // Sample center tile of chunk to determine terrain
+            int centerTile = 8 * 16 + 8; // Middle of 16x16 chunk
+            if (centerTile < [chunk->chunkMap count]) {
+                U7ChunkIndex *chunkIdx = chunk->chunkMap[centerTile];
+                long shapeID = chunkIdx->shapeIndex;
+                
+                int terrainType = [self terrainTypeForShapeID:shapeID];
+                _terrainGrid[chunkY * 192 + chunkX] = terrainType;
+                
+                NSString *terrainName = [self terrainNameForType:terrainType];
+                counts[terrainName] = @([counts[terrainName] intValue] + 1);
+                totalSamples++;
+            }
         }
     }
     
@@ -346,49 +346,65 @@
         float percentage = ([counts[terrain] floatValue] / totalSamples) * 100.0f;
         _terrainStats[terrain] = @(percentage);
     }
+    
+    NSLog(@"Terrain analysis complete");
 }
 
-- (NSString *)terrainNameForShapeID:(long)shapeID
+// Terrain types for visualization
+enum {
+    TerrainTypeWater = 1,
+    TerrainTypeGrass = 2,
+    TerrainTypeMountain = 3,
+    TerrainTypeForest = 4,
+    TerrainTypeSwamp = 5,
+    TerrainTypeDesert = 6,
+    TerrainTypeOther = 0
+};
+
+- (int)terrainTypeForShapeID:(long)shapeID
 {
-    // Simple classification based on shape ID ranges
-    // These ranges are approximations and may need refinement based on actual U7 data
-    
-    if ([self isBuildingShape:shapeID]) {
-        return @"buildings";
+    // Water (shapes 0-100 are typically water/coast)
+    if (shapeID >= 0 && shapeID <= 100) {
+        return TerrainTypeWater;
     }
     
-    // Grass/ground tiles (common base terrain)
-    if (shapeID >= 0 && shapeID <= 50) {
-        return @"grass";
+    // Grass (main terrain)
+    if (shapeID >= 1 && shapeID <= 50) {
+        return TerrainTypeGrass;
     }
     
-    // Trees/forest
-    if (shapeID >= 150 && shapeID <= 250) {
-        return @"forest";
+    // Mountains
+    if (shapeID >= 1010 && shapeID <= 1050) {
+        return TerrainTypeMountain;
     }
     
-    // Water
-    if (shapeID >= 50 && shapeID <= 100) {
-        return @"water";
-    }
-    
-    // Mountains/rocks
-    if (shapeID >= 100 && shapeID <= 150) {
-        return @"mountains";
+    // Trees/forest (147-149 are trees based on the shape distribution)
+    if (shapeID >= 147 && shapeID <= 149) {
+        return TerrainTypeForest;
     }
     
     // Swamp
-    if (shapeID >= 600 && shapeID <= 650) {
-        return @"swamp";
+    if (shapeID >= 1060 && shapeID <= 1100) {
+        return TerrainTypeSwamp;
     }
     
-    // Desert/sand
-    if (shapeID >= 550 && shapeID <= 600) {
-        return @"desert";
-    }
-    
-    return @"other";
+    return TerrainTypeOther;
 }
+
+- (NSString *)terrainNameForType:(int)terrainType
+{
+    switch (terrainType) {
+        case TerrainTypeWater: return @"water";
+        case TerrainTypeGrass: return @"grass";
+        case TerrainTypeMountain: return @"mountains";
+        case TerrainTypeForest: return @"forest";
+        case TerrainTypeSwamp: return @"swamp";
+        case TerrainTypeDesert: return @"desert";
+        default: return @"other";
+    }
+}
+
+// Terrain classification moved to terrainTypeForShapeID and terrainNameForType
 
 - (NSString *)getResultsText
 {
@@ -426,14 +442,27 @@
 
 - (NSDictionary *)exportPatterns
 {
+    // Convert terrain grid to NSData for export
+    NSData *terrainGridData = [NSData dataWithBytes:_terrainGrid length:192 * 192 * sizeof(int)];
+    
     return @{
         @"cities": _cities,
         @"terrain": _terrainStats,
+        @"terrainGrid": terrainGridData,
+        @"gridSize": @(192),
         @"metadata": @{
             @"mapSize": @{@"width": @(192*16), @"height": @(192*16)},
             @"analyzedAt": [[NSDate date] description]
         }
     };
+}
+
+- (void)dealloc
+{
+    if (_terrainGrid) {
+        free(_terrainGrid);
+        _terrainGrid = NULL;
+    }
 }
 
 @end

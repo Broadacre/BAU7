@@ -159,7 +159,11 @@
     int pixelScale = 4; // 4 pixels per chunk
     int imageSize = mapSize * pixelScale;
     
-    // Create density grid
+    // Get terrain grid
+    NSData *terrainGridData = patterns[@"terrainGrid"];
+    const int *terrainGrid = (const int *)[terrainGridData bytes];
+    
+    // Create building density grid
     int gridSize = mapSize;
     int *densityGrid = calloc(gridSize * gridSize, sizeof(int));
     
@@ -172,13 +176,11 @@
         int height = [city[@"height"] intValue];
         int buildingCount = [city[@"buildingCount"] intValue];
         
-        // Convert tile coords to chunk coords
         int chunkX = x / 16;
         int chunkY = y / 16;
         int chunkW = MAX(1, width / 16);
         int chunkH = MAX(1, height / 16);
         
-        // Fill region with density
         for (int cy = chunkY; cy < MIN(gridSize, chunkY + chunkH); cy++) {
             for (int cx = chunkX; cx < MIN(gridSize, chunkX + chunkW); cx++) {
                 if (cx >= 0 && cx < gridSize && cy >= 0 && cy < gridSize) {
@@ -188,7 +190,7 @@
         }
     }
     
-    // Find max density for normalization
+    // Find max density
     int maxDensity = 1;
     for (int i = 0; i < gridSize * gridSize; i++) {
         if (densityGrid[i] > maxDensity) {
@@ -200,36 +202,55 @@
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(imageSize, imageSize), NO, 1.0);
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
-    // Background
-    [[UIColor colorWithWhite:0.1 alpha:1.0] setFill];
-    CGContextFillRect(ctx, CGRectMake(0, 0, imageSize, imageSize));
+    // Draw terrain base layer
+    for (int y = 0; y < gridSize; y++) {
+        for (int x = 0; x < gridSize; x++) {
+            int terrainType = terrainGrid[y * gridSize + x];
+            
+            UIColor *color;
+            switch (terrainType) {
+                case 1: // Water
+                    color = [UIColor colorWithRed:0.2 green:0.4 blue:0.8 alpha:1.0];
+                    break;
+                case 2: // Grass
+                    color = [UIColor colorWithRed:0.4 green:0.6 blue:0.3 alpha:1.0];
+                    break;
+                case 3: // Mountains
+                    color = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];
+                    break;
+                case 4: // Forest
+                    color = [UIColor colorWithRed:0.2 green:0.5 blue:0.2 alpha:1.0];
+                    break;
+                case 5: // Swamp
+                    color = [UIColor colorWithRed:0.3 green:0.4 blue:0.3 alpha:1.0];
+                    break;
+                case 6: // Desert
+                    color = [UIColor colorWithRed:0.8 green:0.7 blue:0.4 alpha:1.0];
+                    break;
+                default: // Other
+                    color = [UIColor colorWithRed:0.3 green:0.3 blue:0.3 alpha:1.0];
+                    break;
+            }
+            
+            [color setFill];
+            CGContextFillRect(ctx, CGRectMake(x * pixelScale, y * pixelScale, pixelScale, pixelScale));
+        }
+    }
     
-    // Draw heat map
+    // Overlay building density (semi-transparent red)
     for (int y = 0; y < gridSize; y++) {
         for (int x = 0; x < gridSize; x++) {
             int density = densityGrid[y * gridSize + x];
             if (density > 0) {
                 float normalized = (float)density / maxDensity;
-                
-                // Heat map color (blue -> green -> yellow -> red)
-                UIColor *color;
-                if (normalized < 0.33) {
-                    color = [UIColor colorWithRed:0 green:normalized*3 blue:1.0 alpha:0.8];
-                } else if (normalized < 0.66) {
-                    float t = (normalized - 0.33) * 3;
-                    color = [UIColor colorWithRed:t green:1.0 blue:1.0-t alpha:0.8];
-                } else {
-                    float t = (normalized - 0.66) * 3;
-                    color = [UIColor colorWithRed:1.0 green:1.0-t blue:0 alpha:0.8];
-                }
-                
+                UIColor *color = [UIColor colorWithRed:1.0 green:0.3 blue:0.2 alpha:normalized * 0.7];
                 [color setFill];
                 CGContextFillRect(ctx, CGRectMake(x * pixelScale, y * pixelScale, pixelScale, pixelScale));
             }
         }
     }
     
-    // Draw city markers
+    // Draw city markers (white dots)
     [[UIColor whiteColor] setFill];
     for (NSDictionary *city in cities) {
         int x = [city[@"x"] intValue] / 16;

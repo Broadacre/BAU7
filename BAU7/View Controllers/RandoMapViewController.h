@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
     
 }
 
-
+-(void)generateNewRandomMap;
 -(IBAction)reset:(id)sender;
 @end
 

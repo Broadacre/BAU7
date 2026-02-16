@@ -86,6 +86,10 @@
     drawMode=MiniMapDrawMode;
     //drawMode=NormalMapDrawMode;
     
+    // Initialize drag state
+    _isDragging = NO;
+    _dragOriginalPositions = [[NSMutableArray alloc]init];
+    
     environment=NULL;
     
     
@@ -2389,6 +2393,93 @@
     CGPoint screenCoord=CGPointMake(chunkLocationX, chunkLocationY);
     //logPoint(screenCoord, @"ScreenCoord");
     return screenCoord;
+}
+
+#pragma mark - Shape Dragging
+
+-(BOOL)isDragging
+{
+    return _isDragging;
+}
+
+-(BOOL)beginDragAtViewLocation:(CGPoint)viewLocation
+{
+    if ([selectedShapes count] == 0) {
+        return NO;
+    }
+    
+    // Check if the touch is within any selected shape's highlight rect
+    for (U7ShapeReference *shape in selectedShapes) {
+        CGRect highlightRect = [self highlightRectForShape:shape];
+        if (CGRectContainsPoint(highlightRect, viewLocation)) {
+            _isDragging = YES;
+            _dragStartLocation = viewLocation;
+            _dragCurrentLocation = viewLocation;
+            
+            // Store original positions for all selected shapes
+            if (!_dragOriginalPositions) {
+                _dragOriginalPositions = [[NSMutableArray alloc] init];
+            }
+            [_dragOriginalPositions removeAllObjects];
+            
+            for (U7ShapeReference *selectedShape in selectedShapes) {
+                [_dragOriginalPositions addObject:[NSValue valueWithCGPoint:selectedShape->location]];
+            }
+            
+            return YES;
+        }
+    }
+    
+    return NO;
+}
+
+-(void)continueDragAtViewLocation:(CGPoint)viewLocation
+{
+    if (!_isDragging) {
+        return;
+    }
+    
+    CGPoint delta = CGPointMake(viewLocation.x - _dragStartLocation.x, 
+                                viewLocation.y - _dragStartLocation.y);
+    _dragCurrentLocation = viewLocation;
+    
+    // Update positions of all selected shapes
+    for (NSUInteger i = 0; i < [selectedShapes count]; i++) {
+        U7ShapeReference *shape = selectedShapes[i];
+        CGPoint originalPos = [[_dragOriginalPositions objectAtIndex:i] CGPointValue];
+        shape->location = CGPointMake(originalPos.x + delta.x, originalPos.y + delta.y);
+    }
+    
+    [self setNeedsDisplay];
+}
+
+-(void)endDrag
+{
+    if (!_isDragging) {
+        return;
+    }
+    
+    _isDragging = NO;
+    [_dragOriginalPositions removeAllObjects];
+    [self setNeedsDisplay];
+}
+
+-(void)cancelDrag
+{
+    if (!_isDragging) {
+        return;
+    }
+    
+    // Restore original positions
+    for (NSUInteger i = 0; i < [selectedShapes count]; i++) {
+        U7ShapeReference *shape = selectedShapes[i];
+        CGPoint originalPos = [[_dragOriginalPositions objectAtIndex:i] CGPointValue];
+        shape->location = originalPos;
+    }
+    
+    _isDragging = NO;
+    [_dragOriginalPositions removeAllObjects];
+    [self setNeedsDisplay];
 }
 
 @end

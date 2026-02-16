@@ -50,18 +50,29 @@
     [u7view setChunkWidth:CHUNKSTODRAW];
     mapLocation=CGPointMake(0, 0);
     [u7view setStartPoint:mapLocation];
-    [u7view generateMap];
+    [self generateNewRandomMap];
 }
 
+-(void)generateNewRandomMap
+{
+    NSLog(@"Generating new random map...");
+    
+    // Generate the base map using the procedural generation system
+    [u7view generateMap];
+    
+    // Update the minimap to reflect the new terrain
+    [u7view generateMiniMap];
+    
+    // Mark the map as dirty and redraw
+    [u7view dirtyMap];
+    [u7view setNeedsDisplay];
+    
+    NSLog(@"Random map generation complete");
+}
 
 -(IBAction)reset:(id)sender
 {
-    [u7view generateMap];
-    [u7view generateMiniMap];
-    
-    [u7view dirtyMap];
-    [u7view setNeedsDisplay];
-    //[self insertTempDungeon];
+    [self generateNewRandomMap];
 }
 
 

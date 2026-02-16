@@ -214,26 +214,26 @@
             
             UIColor *color;
             switch (terrainType) {
-                case 1: // Water
-                    color = [UIColor colorWithRed:0.2 green:0.4 blue:0.8 alpha:1.0];
+                case 1: // Water - deep blue
+                    color = [UIColor colorWithRed:0.15 green:0.35 blue:0.75 alpha:1.0];
                     break;
-                case 2: // Grass
-                    color = [UIColor colorWithRed:0.4 green:0.6 blue:0.3 alpha:1.0];
+                case 2: // Grass - light green
+                    color = [UIColor colorWithRed:0.45 green:0.65 blue:0.35 alpha:1.0];
                     break;
-                case 3: // Mountains
-                    color = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];
+                case 3: // Mountains - brown/gray
+                    color = [UIColor colorWithRed:0.55 green:0.50 blue:0.45 alpha:1.0];
                     break;
-                case 4: // Forest
-                    color = [UIColor colorWithRed:0.2 green:0.5 blue:0.2 alpha:1.0];
+                case 4: // Forest - dark green
+                    color = [UIColor colorWithRed:0.20 green:0.50 blue:0.25 alpha:1.0];
                     break;
-                case 5: // Swamp
-                    color = [UIColor colorWithRed:0.3 green:0.4 blue:0.3 alpha:1.0];
+                case 5: // Swamp - muddy green
+                    color = [UIColor colorWithRed:0.35 green:0.45 blue:0.35 alpha:1.0];
                     break;
-                case 6: // Desert
-                    color = [UIColor colorWithRed:0.8 green:0.7 blue:0.4 alpha:1.0];
+                case 6: // Desert - sandy yellow
+                    color = [UIColor colorWithRed:0.85 green:0.75 blue:0.50 alpha:1.0];
                     break;
-                default: // Other
-                    color = [UIColor colorWithRed:0.3 green:0.3 blue:0.3 alpha:1.0];
+                default: // Other - dark gray
+                    color = [UIColor colorWithRed:0.25 green:0.25 blue:0.25 alpha:1.0];
                     break;
             }
             

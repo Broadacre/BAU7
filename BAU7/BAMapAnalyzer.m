@@ -363,29 +363,42 @@ enum {
 
 - (int)terrainTypeForShapeID:(long)shapeID
 {
-    // Water (shapes 0-100 are typically water/coast)
-    if (shapeID >= 0 && shapeID <= 100) {
-        return TerrainTypeWater;
-    }
+    // Based on actual U7 shape distribution:
+    // Shape 19 (31.6%) = grass (most common)
+    // Shape 8 (9.8%) = dirt/ground
+    // Shape 48 (6.5%) = water
+    // Shape 147-149 (~13%) = trees
+    // Shape 10, 64, 65 = paths/roads
+    // Shape 134, 139, 146 = mountains (just before trees)
     
-    // Grass (main terrain)
-    if (shapeID >= 1 && shapeID <= 50) {
-        return TerrainTypeGrass;
-    }
-    
-    // Mountains
-    if (shapeID >= 1010 && shapeID <= 1050) {
-        return TerrainTypeMountain;
-    }
-    
-    // Trees/forest (147-149 are trees based on the shape distribution)
+    // Trees/forest (147-149 confirmed from distribution)
     if (shapeID >= 147 && shapeID <= 149) {
         return TerrainTypeForest;
     }
     
-    // Swamp
-    if (shapeID >= 1060 && shapeID <= 1100) {
+    // Mountains/rocks (130-146 range, just before trees)
+    if (shapeID >= 130 && shapeID <= 146) {
+        return TerrainTypeMountain;
+    }
+    
+    // Water (40-70 range includes shape 48, 51, 64, 65)
+    if (shapeID >= 40 && shapeID <= 70) {
+        return TerrainTypeWater;
+    }
+    
+    // Grass (includes shapes 8, 10, 12, 17, 19, 20, 21, 26, 30)
+    if ((shapeID >= 8 && shapeID <= 30) || shapeID == 2) {
+        return TerrainTypeGrass;
+    }
+    
+    // Swamp (71-100 range)
+    if (shapeID >= 71 && shapeID <= 100) {
         return TerrainTypeSwamp;
+    }
+    
+    // Desert (101-129 range)
+    if (shapeID >= 101 && shapeID <= 129) {
+        return TerrainTypeDesert;
     }
     
     return TerrainTypeOther;

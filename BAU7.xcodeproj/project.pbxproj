@@ -428,6 +428,8 @@
 		4F99995626FD583D008CA2DA /* BASpriteAction.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F99995526FD583D008CA2DA /* BASpriteAction.m */; };
 		4F99995827012377008CA2DA /* U7CharacterSprite.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F99995727012377008CA2DA /* U7CharacterSprite.m */; };
 		4F99995C2703F353008CA2DA /* BASprite.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F99995B2703F353008CA2DA /* BASprite.m */; };
+		4FA4D6D32F42C2B90096DE17 /* BATransitionStrategyRegistry.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FA4D6D02F42C2B90096DE17 /* BATransitionStrategyRegistry.m */; };
+		4FA4D6D42F42C2B90096DE17 /* BAWoodsTransitionStrategy.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FA4D6D22F42C2B90096DE17 /* BAWoodsTransitionStrategy.m */; };
 		4FB0CF242706462B008DB4DD /* CGPointUtilties.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FB0CF232706462B008DB4DD /* CGPointUtilties.m */; };
 		4FC79DDB26DC89F100D7B4E8 /* U7ChunkViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FC79DDA26DC89F100D7B4E8 /* U7ChunkViewController.m */; };
 		4FC79DDD26DC905A00D7B4E8 /* Globals.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FC79DDC26DC905A00D7B4E8 /* Globals.m */; };
@@ -917,6 +919,12 @@
 		4F99995A2703F353008CA2DA /* BASprite.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BASprite.h; sourceTree = "<group>"; };
 		4F99995B2703F353008CA2DA /* BASprite.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BASprite.m; sourceTree = "<group>"; };
 		4F99995D2703F937008CA2DA /* Includes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Includes.h; sourceTree = "<group>"; };
+		4FA4D6CD2F42C2B90096DE17 /* BAGrassTransitionStrategy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BAGrassTransitionStrategy.h; sourceTree = "<group>"; };
+		4FA4D6CE2F42C2B90096DE17 /* BATerrainTransitionStrategy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BATerrainTransitionStrategy.h; sourceTree = "<group>"; };
+		4FA4D6CF2F42C2B90096DE17 /* BATransitionStrategyRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BATransitionStrategyRegistry.h; sourceTree = "<group>"; };
+		4FA4D6D02F42C2B90096DE17 /* BATransitionStrategyRegistry.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BATransitionStrategyRegistry.m; sourceTree = "<group>"; };
+		4FA4D6D12F42C2B90096DE17 /* BAWoodsTransitionStrategy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BAWoodsTransitionStrategy.h; sourceTree = "<group>"; };
+		4FA4D6D22F42C2B90096DE17 /* BAWoodsTransitionStrategy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BAWoodsTransitionStrategy.m; sourceTree = "<group>"; };
 		4FB0CF2227064614008DB4DD /* CGPointUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGPointUtilities.h; sourceTree = "<group>"; };
 		4FB0CF232706462B008DB4DD /* CGPointUtilties.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGPointUtilties.m; sourceTree = "<group>"; };
 		4FBB7A882ED678950015ECC1 /* U7ShapeReference+Animation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "U7ShapeReference+Animation.h"; sourceTree = "<group>"; };
@@ -997,10 +1005,10 @@
 		4F2C20E126BE0C8F00E5F92C /* BAU7 */ = {
 			isa = PBXGroup;
 			children = (
+				4FCBCFD22B979B2500E9A782 /* Interpreters */,
 				4F7FF4CD2B77CEDA000171BD /* ProceduralGeneration */,
 				4F7FF4CE2B77CEFE000171BD /* MapViews */,
 				4F7FF4CF2B77CF3A000171BD /* View Controllers */,
-				4FCBCFD22B979B2500E9A782 /* Interpreters */,
 				4FF5E92A2C0FBDDF00D9C43E /* XML Parsers */,
 				4FB0CF2227064614008DB4DD /* CGPointUtilities.h */,
 				4FB0CF232706462B008DB4DD /* CGPointUtilties.m */,
@@ -1549,6 +1557,12 @@
 		4FCBCFD22B979B2500E9A782 /* Interpreters */ = {
 			isa = PBXGroup;
 			children = (
+				4FA4D6CD2F42C2B90096DE17 /* BAGrassTransitionStrategy.h */,
+				4FA4D6CE2F42C2B90096DE17 /* BATerrainTransitionStrategy.h */,
+				4FA4D6CF2F42C2B90096DE17 /* BATransitionStrategyRegistry.h */,
+				4FA4D6D02F42C2B90096DE17 /* BATransitionStrategyRegistry.m */,
+				4FA4D6D12F42C2B90096DE17 /* BAWoodsTransitionStrategy.h */,
+				4FA4D6D22F42C2B90096DE17 /* BAWoodsTransitionStrategy.m */,
 				4FE981762946BFF400F54757 /* BAU7BitmapInterpreter.h */,
 				4FE981772946BFF400F54757 /* BAU7BitmapInterpreter.m */,
 			);
@@ -2092,6 +2106,8 @@
 				4F1B0193296BC4EB00F83A87 /* BAU7PalletView.m in Sources */,
 				4F2C7F042873C168004E4B76 /* BATable.m in Sources */,
 				4F7FF4D22B77D35C000171BD /* BADirectionUtilities.m in Sources */,
+				4FA4D6D32F42C2B90096DE17 /* BATransitionStrategyRegistry.m in Sources */,
+				4FA4D6D42F42C2B90096DE17 /* BAWoodsTransitionStrategy.m in Sources */,
 				4F6944012B6DCE450001400E /* BARiverGenerator.m in Sources */,
 				4FE9817529464C8500F54757 /* BABitmap.m in Sources */,
 				4FE05CF126E5E57E00A612FC /* U7ShapeViewController.m in Sources */,

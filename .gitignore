@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode user data
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+
+# Duplicate files (manual cleanup needed)
+*\ 2.h
+*\ 2.m
+*\ 2.txt
+*\ 2.plist
+*\ 2.md
+*\ 2.entitlements
+*\ 3.h
+*\ 3.m
+*\ 3.txt
+*\ 3.plist
+*\ 3.md
+*\ 3.entitlements

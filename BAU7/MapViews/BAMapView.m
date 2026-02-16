@@ -2423,7 +2423,8 @@
             [_dragOriginalPositions removeAllObjects];
             
             for (U7ShapeReference *selectedShape in selectedShapes) {
-                [_dragOriginalPositions addObject:[NSValue valueWithCGPoint:selectedShape->location]];
+                CGPoint pos = CGPointMake(selectedShape->xloc, selectedShape->yloc);
+                [_dragOriginalPositions addObject:[NSValue valueWithCGPoint:pos]];
             }
             
             return YES;
@@ -2447,7 +2448,8 @@
     for (NSUInteger i = 0; i < [selectedShapes count]; i++) {
         U7ShapeReference *shape = selectedShapes[i];
         CGPoint originalPos = [[_dragOriginalPositions objectAtIndex:i] CGPointValue];
-        shape->location = CGPointMake(originalPos.x + delta.x, originalPos.y + delta.y);
+        shape->xloc = originalPos.x + delta.x;
+        shape->yloc = originalPos.y + delta.y;
     }
     
     [self setNeedsDisplay];
@@ -2474,7 +2476,8 @@
     for (NSUInteger i = 0; i < [selectedShapes count]; i++) {
         U7ShapeReference *shape = selectedShapes[i];
         CGPoint originalPos = [[_dragOriginalPositions objectAtIndex:i] CGPointValue];
-        shape->location = originalPos;
+        shape->xloc = originalPos.x;
+        shape->yloc = originalPos.y;
     }
     
     _isDragging = NO;

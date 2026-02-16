@@ -37,13 +37,16 @@
     // Phase 0: Sample shapes to find what IDs are actually used
     [self sampleShapeDistribution];
     
-    // Phase 1: Scan for building clusters (cities)
-    [self scanForCities];
+    // Phase 1: Find individual building structures
+    NSArray *buildings = [self scanForBuildings];
     
-    // Phase 2: Count terrain types
+    // Phase 2: Group nearby buildings into cities
+    [self groupBuildingsIntoCities:buildings];
+    
+    // Phase 3: Count terrain types
     [self analyzeTerrainDistribution];
     
-    // Phase 3: (Future) Detect roads, dungeons, etc.
+    // Phase 4: (Future) Detect roads, dungeons, etc.
     
     NSLog(@"Analysis complete! Found %lu cities", (unsigned long)[_cities count]);
 }
@@ -88,16 +91,16 @@
     }
 }
 
-- (void)scanForCities
+- (NSArray *)scanForBuildings
 {
-    int mapWidth = 192;  // U7 map is 192 chunks wide (3 superchunks * 64 chunks)
-    int mapHeight = 192; // 192 chunks tall
-    int chunkSize = 16;  // Each chunk is 16x16 tiles
+    NSMutableArray *buildings = [NSMutableArray array];
+    int mapWidth = 192;
+    int mapHeight = 192;
+    int chunkSize = 16;
     int buildingTilesFound = 0;
     
-    NSLog(@"Scanning for building clusters...");
+    NSLog(@"Scanning for individual buildings...");
     
-    // Scan every tile looking for building clusters
     for (int chunkY = 0; chunkY < mapHeight; chunkY++) {
         for (int chunkX = 0; chunkX < mapWidth; chunkX++) {
             
@@ -116,33 +119,21 @@
                     NSString *key = [NSString stringWithFormat:@"%d,%d", worldX, worldY];
                     
                     if ([_visitedTiles containsObject:key]) {
-                        continue; // Already processed
+                        continue;
                     }
                     
-                    // Get shape ID from chunk map
                     int tileIndex = tileY * chunkSize + tileX;
                     if (tileIndex < [chunk->chunkMap count]) {
                         U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
                         long shapeID = chunkIdx->shapeIndex;
                         
-                        // Is this a building tile?
                         if ([self isBuildingShape:shapeID]) {
                             buildingTilesFound++;
                             
-                            // Found unvisited building - flood fill to find cluster
-                            NSDictionary *city = [self floodFillBuildingsFromX:worldX y:worldY];
+                            NSDictionary *building = [self floodFillBuildingsFromX:worldX y:worldY];
                             
-                            int clusterSize = [city[@"tileCount"] intValue];
-                            
-                            // Only count large clusters as cities (> 50 tiles)
-                            if (clusterSize > 50) {
-                                NSLog(@"Found city cluster: %d buildings at (%@, %@)", 
-                                      clusterSize, city[@"x"], city[@"y"]);
-                                [_cities addObject:city];
-                            } else if (clusterSize > 5) {
-                                // Log smaller clusters for debugging
-                                NSLog(@"Found small building cluster: %d tiles at (%@, %@)", 
-                                      clusterSize, city[@"x"], city[@"y"]);
+                            if ([building[@"tileCount"] intValue] >= 6) {
+                                [buildings addObject:building];
                             }
                         }
                     }
@@ -151,8 +142,81 @@
         }
     }
     
-    NSLog(@"Scan complete: Found %d total building tiles, %lu cities", 
-          buildingTilesFound, (unsigned long)[_cities count]);
+    NSLog(@"Found %lu individual buildings (%d total tiles)", (unsigned long)[buildings count], buildingTilesFound);
+    return buildings;
+}
+
+- (void)groupBuildingsIntoCities:(NSArray *)buildings
+{
+    NSLog(@"Grouping buildings into cities...");
+    
+    NSMutableArray *remainingBuildings = [buildings mutableCopy];
+    int cityRadius = 150; // Buildings within 150 tiles are part of the same city
+    
+    while ([remainingBuildings count] > 0) {
+        NSDictionary *seed = remainingBuildings[0];
+        [remainingBuildings removeObjectAtIndex:0];
+        
+        int seedX = [seed[@"x"] intValue];
+        int seedY = [seed[@"y"] intValue];
+        
+        NSMutableArray *cityBuildings = [NSMutableArray arrayWithObject:seed];
+        
+        // Find all buildings within radius
+        NSMutableArray *toRemove = [NSMutableArray array];
+        for (NSDictionary *building in remainingBuildings) {
+            int bx = [building[@"x"] intValue];
+            int by = [building[@"y"] intValue];
+            
+            int dx = bx - seedX;
+            int dy = by - seedY;
+            int distance = sqrt(dx*dx + dy*dy);
+            
+            if (distance < cityRadius) {
+                [cityBuildings addObject:building];
+                [toRemove addObject:building];
+            }
+        }
+        
+        [remainingBuildings removeObjectsInArray:toRemove];
+        
+        // If we have 10+ buildings, it's a city
+        if ([cityBuildings count] >= 10) {
+            // Calculate city bounds
+            int minX = 9999, maxX = 0, minY = 9999, maxY = 0;
+            int totalTiles = 0;
+            
+            for (NSDictionary *b in cityBuildings) {
+                int x = [b[@"x"] intValue];
+                int y = [b[@"y"] intValue];
+                int w = [b[@"width"] intValue];
+                int h = [b[@"height"] intValue];
+                int tiles = [b[@"tileCount"] intValue];
+                
+                if (x < minX) minX = x;
+                if (x + w > maxX) maxX = x + w;
+                if (y < minY) minY = y;
+                if (y + h > maxY) maxY = y + h;
+                totalTiles += tiles;
+            }
+            
+            NSDictionary *city = @{
+                @"x": @(minX),
+                @"y": @(minY),
+                @"width": @(maxX - minX),
+                @"height": @(maxY - minY),
+                @"buildingCount": @([cityBuildings count]),
+                @"tileCount": @(totalTiles)
+            };
+            
+            NSLog(@"Found city: %lu buildings, %d tiles at (%d, %d)", 
+                  (unsigned long)[cityBuildings count], totalTiles, minX, minY);
+            
+            [_cities addObject:city];
+        }
+    }
+    
+    NSLog(@"City detection complete: Found %lu cities", (unsigned long)[_cities count]);
 }
 
 - (NSDictionary *)floodFillBuildingsFromX:(int)startX y:(int)startY
@@ -339,8 +403,8 @@
         NSDictionary *city = _cities[i];
         [text appendFormat:@"City %d:\n", i+1];
         [text appendFormat:@"  Position: (%@, %@)\n", city[@"x"], city[@"y"]];
-        [text appendFormat:@"  Size: %@ x %@\n", city[@"width"], city[@"height"]];
-        [text appendFormat:@"  Buildings: %@\n\n", city[@"tileCount"]];
+        [text appendFormat:@"  Size: %@ x %@ tiles\n", city[@"width"], city[@"height"]];
+        [text appendFormat:@"  Buildings: %@ (%@ tiles)\n\n", city[@"buildingCount"], city[@"tileCount"]];
     }
     
     if ([_cities count] > 10) {

@@ -312,7 +312,7 @@
     NSLog(@"Analyzing terrain distribution...");
     
     NSMutableDictionary *counts = [NSMutableDictionary dictionary];
-    int totalSamples = 0;
+    int totalChunks = 0;
     
     // Scan each chunk and determine dominant terrain type
     for (int chunkY = 0; chunkY < 192; chunkY++) {
@@ -325,29 +325,45 @@
             U7Chunk *chunk = mapChunk->masterChunk;
             if (!chunk || !chunk->chunkMap) continue;
             
-            // Sample center tile of chunk to determine terrain
-            int centerTile = 8 * 16 + 8; // Middle of 16x16 chunk
-            if (centerTile < [chunk->chunkMap count]) {
-                U7ChunkIndex *chunkIdx = chunk->chunkMap[centerTile];
+            // Count terrain types across ALL tiles in this chunk
+            int terrainTypeCounts[7] = {0}; // Array for each terrain type (0-6)
+            int maxCount = [chunk->chunkMap count];
+            
+            for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
+                U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
                 long shapeID = chunkIdx->shapeIndex;
                 
                 int terrainType = [self terrainTypeForShapeID:shapeID];
-                _terrainGrid[chunkY * 192 + chunkX] = terrainType;
-                
-                NSString *terrainName = [self terrainNameForType:terrainType];
-                counts[terrainName] = @([counts[terrainName] intValue] + 1);
-                totalSamples++;
+                terrainTypeCounts[terrainType]++;
             }
+            
+            // Find the most common terrain type in this chunk
+            int dominantTerrain = TerrainTypeOther;
+            int maxTerrainCount = 0;
+            
+            for (int i = 0; i < 7; i++) {
+                if (terrainTypeCounts[i] > maxTerrainCount) {
+                    maxTerrainCount = terrainTypeCounts[i];
+                    dominantTerrain = i;
+                }
+            }
+            
+            // Store the dominant terrain for this chunk
+            _terrainGrid[chunkY * 192 + chunkX] = dominantTerrain;
+            
+            NSString *terrainName = [self terrainNameForType:dominantTerrain];
+            counts[terrainName] = @([counts[terrainName] intValue] + 1);
+            totalChunks++;
         }
     }
     
     // Convert to percentages
     for (NSString *terrain in counts) {
-        float percentage = ([counts[terrain] floatValue] / totalSamples) * 100.0f;
+        float percentage = ([counts[terrain] floatValue] / totalChunks) * 100.0f;
         _terrainStats[terrain] = @(percentage);
     }
     
-    NSLog(@"Terrain analysis complete");
+    NSLog(@"Terrain analysis complete: analyzed %d chunks", totalChunks);
 }
 
 // Terrain types for visualization

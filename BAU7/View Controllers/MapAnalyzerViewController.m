@@ -18,11 +18,39 @@
     self.view.backgroundColor = [UIColor systemBackgroundColor];
     self.title = @"Map Analyzer";
     
-    // Results text view (scrollable)
+    // Heat map scroll view (left side)
+    _heatMapScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
+    _heatMapScrollView.backgroundColor = [UIColor blackColor];
+    _heatMapScrollView.minimumZoomScale = 0.5;
+    _heatMapScrollView.maximumZoomScale = 4.0;
+    _heatMapScrollView.delegate = self;
+    _heatMapScrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:_heatMapScrollView];
+    
+    // Heat map image view
+    _heatMapImageView = [[UIImageView alloc] initWithFrame:CGRectZero];
+    _heatMapImageView.contentMode = UIViewContentModeScaleAspectFit;
+    [_heatMapScrollView addSubview:_heatMapImageView];
+    
+    // Placeholder image
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(512, 512), NO, 1.0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    [[UIColor darkGrayColor] setFill];
+    CGContextFillRect(ctx, CGRectMake(0, 0, 512, 512));
+    [[UIColor whiteColor] setStroke];
+    CGContextSetLineWidth(ctx, 2.0);
+    CGContextStrokeRect(ctx, CGRectMake(0, 0, 512, 512));
+    UIImage *placeholder = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    _heatMapImageView.image = placeholder;
+    _heatMapImageView.frame = CGRectMake(0, 0, 512, 512);
+    _heatMapScrollView.contentSize = CGSizeMake(512, 512);
+    
+    // Results text view (right side)
     _resultsTextView = [[UITextView alloc] initWithFrame:CGRectZero];
     _resultsTextView.editable = NO;
-    _resultsTextView.font = [UIFont fontWithName:@"Menlo" size:12];
-    _resultsTextView.text = @"Tap 'Analyze Map' to scan the Ultima VII world...\n";
+    _resultsTextView.font = [UIFont fontWithName:@"Menlo" size:11];
+    _resultsTextView.text = @"Tap 'Analyze Map' to scan the Ultima VII world and generate a heat map...\n";
     _resultsTextView.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:_resultsTextView];
     
@@ -37,7 +65,7 @@
     _exportButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [_exportButton setTitle:@"Export JSON" forState:UIControlStateNormal];
     [_exportButton addTarget:self action:@selector(exportJSON:) forControlEvents:UIControlEventTouchUpInside];
-    _exportButton.enabled = NO; // Enable after analysis
+    _exportButton.enabled = NO;
     _exportButton.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:_exportButton];
     
@@ -47,22 +75,35 @@
     _activityIndicator.hidesWhenStopped = YES;
     [self.view addSubview:_activityIndicator];
     
-    // Layout constraints
+    // Layout constraints (split view)
     [NSLayoutConstraint activateConstraints:@[
-        [_analyzeButton.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:20],
+        // Buttons at top
+        [_analyzeButton.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:10],
         [_analyzeButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         
-        [_exportButton.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:20],
+        [_exportButton.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:10],
         [_exportButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
-        [_resultsTextView.topAnchor constraintEqualToAnchor:_analyzeButton.bottomAnchor constant:20],
-        [_resultsTextView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
-        [_resultsTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
-        [_resultsTextView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-20],
+        // Heat map on left half
+        [_heatMapScrollView.topAnchor constraintEqualToAnchor:_analyzeButton.bottomAnchor constant:10],
+        [_heatMapScrollView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [_heatMapScrollView.widthAnchor constraintEqualToAnchor:self.view.widthAnchor multiplier:0.5],
+        [_heatMapScrollView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor],
+        
+        // Results text on right half
+        [_resultsTextView.topAnchor constraintEqualToAnchor:_analyzeButton.bottomAnchor constant:10],
+        [_resultsTextView.leadingAnchor constraintEqualToAnchor:_heatMapScrollView.trailingAnchor constant:10],
+        [_resultsTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-10],
+        [_resultsTextView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10],
         
         [_activityIndicator.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
         [_activityIndicator.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor]
     ]];
+}
+
+- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView
+{
+    return _heatMapImageView;
 }
 
 - (void)analyzeMap:(id)sender
@@ -71,10 +112,8 @@
     _analyzeButton.enabled = NO;
     _resultsTextView.text = @"Loading Ultima VII map...\n";
     
-    // Run analysis on background thread
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         
-        // Load the U7 map from the environment
         U7Environment *env = u7Env;
         U7Map *map = env->Map;
         
@@ -87,25 +126,123 @@
             return;
         }
         
-        // Create analyzer and run it
         BAMapAnalyzer *analyzer = [[BAMapAnalyzer alloc] initWithMap:map];
         [analyzer analyze];
         
-        // Get results
         NSString *results = [analyzer getResultsText];
         NSDictionary *patterns = [analyzer exportPatterns];
         
-        // Update UI on main thread
+        // Generate heat map
+        UIImage *heatMap = [self generateHeatMapFromPatterns:patterns];
+        
         dispatch_async(dispatch_get_main_queue(), ^{
             self.resultsTextView.text = results;
+            self.analysisResults = patterns;
             self->_exportButton.enabled = YES;
             [self->_activityIndicator stopAnimating];
             self->_analyzeButton.enabled = YES;
             
-            // Store patterns for export
+            // Display heat map
+            self.heatMapImageView.image = heatMap;
+            self.heatMapImageView.frame = CGRectMake(0, 0, heatMap.size.width, heatMap.size.height);
+            self.heatMapScrollView.contentSize = heatMap.size;
+            self.heatMapScrollView.zoomScale = 1.0;
+            
             self.resultsTextView.accessibilityValue = [self JSONStringFromDictionary:patterns];
         });
     });
+}
+
+- (UIImage *)generateHeatMapFromPatterns:(NSDictionary *)patterns
+{
+    int mapSize = 192; // 192 chunks
+    int pixelScale = 4; // 4 pixels per chunk
+    int imageSize = mapSize * pixelScale;
+    
+    // Create density grid
+    int gridSize = mapSize;
+    int *densityGrid = calloc(gridSize * gridSize, sizeof(int));
+    
+    // Mark building locations
+    NSArray *cities = patterns[@"cities"];
+    for (NSDictionary *city in cities) {
+        int x = [city[@"x"] intValue];
+        int y = [city[@"y"] intValue];
+        int width = [city[@"width"] intValue];
+        int height = [city[@"height"] intValue];
+        int buildingCount = [city[@"buildingCount"] intValue];
+        
+        // Convert tile coords to chunk coords
+        int chunkX = x / 16;
+        int chunkY = y / 16;
+        int chunkW = MAX(1, width / 16);
+        int chunkH = MAX(1, height / 16);
+        
+        // Fill region with density
+        for (int cy = chunkY; cy < MIN(gridSize, chunkY + chunkH); cy++) {
+            for (int cx = chunkX; cx < MIN(gridSize, chunkX + chunkW); cx++) {
+                if (cx >= 0 && cx < gridSize && cy >= 0 && cy < gridSize) {
+                    densityGrid[cy * gridSize + cx] += buildingCount;
+                }
+            }
+        }
+    }
+    
+    // Find max density for normalization
+    int maxDensity = 1;
+    for (int i = 0; i < gridSize * gridSize; i++) {
+        if (densityGrid[i] > maxDensity) {
+            maxDensity = densityGrid[i];
+        }
+    }
+    
+    // Create image
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(imageSize, imageSize), NO, 1.0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    
+    // Background
+    [[UIColor colorWithWhite:0.1 alpha:1.0] setFill];
+    CGContextFillRect(ctx, CGRectMake(0, 0, imageSize, imageSize));
+    
+    // Draw heat map
+    for (int y = 0; y < gridSize; y++) {
+        for (int x = 0; x < gridSize; x++) {
+            int density = densityGrid[y * gridSize + x];
+            if (density > 0) {
+                float normalized = (float)density / maxDensity;
+                
+                // Heat map color (blue -> green -> yellow -> red)
+                UIColor *color;
+                if (normalized < 0.33) {
+                    color = [UIColor colorWithRed:0 green:normalized*3 blue:1.0 alpha:0.8];
+                } else if (normalized < 0.66) {
+                    float t = (normalized - 0.33) * 3;
+                    color = [UIColor colorWithRed:t green:1.0 blue:1.0-t alpha:0.8];
+                } else {
+                    float t = (normalized - 0.66) * 3;
+                    color = [UIColor colorWithRed:1.0 green:1.0-t blue:0 alpha:0.8];
+                }
+                
+                [color setFill];
+                CGContextFillRect(ctx, CGRectMake(x * pixelScale, y * pixelScale, pixelScale, pixelScale));
+            }
+        }
+    }
+    
+    // Draw city markers
+    [[UIColor whiteColor] setFill];
+    for (NSDictionary *city in cities) {
+        int x = [city[@"x"] intValue] / 16;
+        int y = [city[@"y"] intValue] / 16;
+        CGContextFillEllipseInRect(ctx, CGRectMake(x * pixelScale - 3, y * pixelScale - 3, 6, 6));
+    }
+    
+    UIImage *heatMap = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    free(densityGrid);
+    
+    return heatMap;
 }
 
 - (void)exportJSON:(id)sender
@@ -115,7 +252,6 @@
         return;
     }
     
-    // Save to Documents directory
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths firstObject];
     NSString *filePath = [documentsDirectory stringByAppendingPathComponent:@"u7_patterns.json"];
@@ -128,7 +264,6 @@
         return;
     }
     
-    // Show alert
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Exported"
                                                                    message:[NSString stringWithFormat:@"Saved to:\n%@", filePath]
                                                             preferredStyle:UIAlertControllerStyleAlert];

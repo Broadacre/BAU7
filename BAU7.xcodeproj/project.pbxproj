@@ -436,6 +436,9 @@
 		4FD4A9CA2ED1292F00D197B0 /* BAImageUpscaler.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FD4A9C92ED1292F00D197B0 /* BAImageUpscaler.m */; };
 		4FE05CEE26E5E31F00A612FC /* BAU7ShapeView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE05CED26E5E31F00A612FC /* BAU7ShapeView.m */; };
 		4FE05CF126E5E57E00A612FC /* U7ShapeViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE05CF026E5E57E00A612FC /* U7ShapeViewController.m */; };
+		4FE06FC72F43BBEE003C1250 /* TileToChunkMapping.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4FE06FC42F43BBEE003C1250 /* TileToChunkMapping.plist */; };
+		4FE06FC82F43BBEE003C1250 /* TileToChunkMapping.json in Resources */ = {isa = PBXBuildFile; fileRef = 4FE06FC32F43BBEE003C1250 /* TileToChunkMapping.json */; };
+		4FE06FC92F43BBEE003C1250 /* TransitionMappings.json in Resources */ = {isa = PBXBuildFile; fileRef = 4FE06FC52F43BBEE003C1250 /* TransitionMappings.json */; };
 		4FE4AB8B27091FB000E1F798 /* BACamera.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4AB8A27091FB000E1F798 /* BACamera.m */; };
 		4FE4AB8E270A8B4500E1F798 /* RandoMapViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4AB8D270A8B4500E1F798 /* RandoMapViewController.m */; };
 		4FE4AB91270A8E7B00E1F798 /* RandoMapView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4AB90270A8E7B00E1F798 /* RandoMapView.m */; };
@@ -939,6 +942,9 @@
 		4FE05CED26E5E31F00A612FC /* BAU7ShapeView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BAU7ShapeView.m; sourceTree = "<group>"; };
 		4FE05CEF26E5E57E00A612FC /* U7ShapeViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U7ShapeViewController.h; sourceTree = "<group>"; };
 		4FE05CF026E5E57E00A612FC /* U7ShapeViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = U7ShapeViewController.m; sourceTree = "<group>"; };
+		4FE06FC32F43BBEE003C1250 /* TileToChunkMapping.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TileToChunkMapping.json; sourceTree = "<group>"; };
+		4FE06FC42F43BBEE003C1250 /* TileToChunkMapping.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TileToChunkMapping.plist; sourceTree = "<group>"; };
+		4FE06FC52F43BBEE003C1250 /* TransitionMappings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TransitionMappings.json; sourceTree = "<group>"; };
 		4FE4AB8927091FB000E1F798 /* BACamera.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BACamera.h; sourceTree = "<group>"; };
 		4FE4AB8A27091FB000E1F798 /* BACamera.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BACamera.m; sourceTree = "<group>"; };
 		4FE4AB8C270A8B4500E1F798 /* RandoMapViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RandoMapViewController.h; sourceTree = "<group>"; };
@@ -1005,6 +1011,7 @@
 		4F2C20E126BE0C8F00E5F92C /* BAU7 */ = {
 			isa = PBXGroup;
 			children = (
+				4FE06FBF2F43BAEB003C1250 /* Resources */,
 				4FCBCFD22B979B2500E9A782 /* Interpreters */,
 				4F7FF4CD2B77CEDA000171BD /* ProceduralGeneration */,
 				4F7FF4CE2B77CEFE000171BD /* MapViews */,
@@ -1569,6 +1576,24 @@
 			path = Interpreters;
 			sourceTree = "<group>";
 		};
+		4FE06FBF2F43BAEB003C1250 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4FE06FC62F43BBEE003C1250 /* TileMappings */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4FE06FC62F43BBEE003C1250 /* TileMappings */ = {
+			isa = PBXGroup;
+			children = (
+				4FE06FC32F43BBEE003C1250 /* TileToChunkMapping.json */,
+				4FE06FC42F43BBEE003C1250 /* TileToChunkMapping.plist */,
+				4FE06FC52F43BBEE003C1250 /* TransitionMappings.json */,
+			);
+			path = TileMappings;
+			sourceTree = "<group>";
+		};
 		4FF5E92A2C0FBDDF00D9C43E /* XML Parsers */ = {
 			isa = PBXGroup;
 			children = (
@@ -1787,6 +1812,9 @@
 				4F2C23CF26BE0ED500E5F92C /* U7IFIX79 in Resources */,
 				4F2C23B426BE0ED500E5F92C /* ADLIB.ADV in Resources */,
 				4F2C23F726BE0ED500E5F92C /* INTROADM.DAT in Resources */,
+				4FE06FC72F43BBEE003C1250 /* TileToChunkMapping.plist in Resources */,
+				4FE06FC82F43BBEE003C1250 /* TileToChunkMapping.json in Resources */,
+				4FE06FC92F43BBEE003C1250 /* TransitionMappings.json in Resources */,
 				4F2C23BC26BE0ED500E5F92C /* U7IFIX85 in Resources */,
 				4F2C23FF26BE0ED500E5F92C /* U7IFIX5D in Resources */,
 				4F2C230226BE0ED500E5F92C /* U7IREG33 in Resources */,

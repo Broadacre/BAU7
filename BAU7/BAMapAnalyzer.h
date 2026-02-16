@@ -14,5 +14,6 @@
 - (void)analyze;
 - (NSString *)getResultsText;
 - (NSDictionary *)exportPatterns;
+- (NSDictionary *)exportPatternsForVisualization:(BOOL)includeTerrainGrid;
 
 @end

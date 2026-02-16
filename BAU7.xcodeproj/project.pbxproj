@@ -429,7 +429,6 @@
 		4F99995827012377008CA2DA /* U7CharacterSprite.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F99995727012377008CA2DA /* U7CharacterSprite.m */; };
 		4F99995C2703F353008CA2DA /* BASprite.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F99995B2703F353008CA2DA /* BASprite.m */; };
 		4FB0CF242706462B008DB4DD /* CGPointUtilties.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FB0CF232706462B008DB4DD /* CGPointUtilties.m */; };
-		4FBB0DDD2B979D4600AA16DB /* BAU7TileInterpreter.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FBB0DDC2B979D4600AA16DB /* BAU7TileInterpreter.m */; };
 		4FC79DDB26DC89F100D7B4E8 /* U7ChunkViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FC79DDA26DC89F100D7B4E8 /* U7ChunkViewController.m */; };
 		4FC79DDD26DC905A00D7B4E8 /* Globals.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FC79DDC26DC905A00D7B4E8 /* Globals.m */; };
 		4FD4A9CA2ED1292F00D197B0 /* BAImageUpscaler.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FD4A9C92ED1292F00D197B0 /* BAImageUpscaler.m */; };
@@ -920,8 +919,6 @@
 		4F99995D2703F937008CA2DA /* Includes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Includes.h; sourceTree = "<group>"; };
 		4FB0CF2227064614008DB4DD /* CGPointUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CGPointUtilities.h; sourceTree = "<group>"; };
 		4FB0CF232706462B008DB4DD /* CGPointUtilties.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CGPointUtilties.m; sourceTree = "<group>"; };
-		4FBB0DDB2B979D4600AA16DB /* BAU7TileInterpreter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BAU7TileInterpreter.h; sourceTree = "<group>"; };
-		4FBB0DDC2B979D4600AA16DB /* BAU7TileInterpreter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BAU7TileInterpreter.m; sourceTree = "<group>"; };
 		4FBB7A882ED678950015ECC1 /* U7ShapeReference+Animation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "U7ShapeReference+Animation.h"; sourceTree = "<group>"; };
 		4FBB7A892ED678A30015ECC1 /* U7ShapeReference+Animation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "U7ShapeReference+Animation.m"; sourceTree = "<group>"; };
 		4FC79DD926DC89F100D7B4E8 /* U7ChunkViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U7ChunkViewController.h; sourceTree = "<group>"; };
@@ -1554,8 +1551,6 @@
 			children = (
 				4FE981762946BFF400F54757 /* BAU7BitmapInterpreter.h */,
 				4FE981772946BFF400F54757 /* BAU7BitmapInterpreter.m */,
-				4FBB0DDB2B979D4600AA16DB /* BAU7TileInterpreter.h */,
-				4FBB0DDC2B979D4600AA16DB /* BAU7TileInterpreter.m */,
 			);
 			path = Interpreters;
 			sourceTree = "<group>";
@@ -2111,7 +2106,6 @@
 				4F1B0190296BC49100F83A87 /* PalletViewController.m in Sources */,
 				4F6A426427EE096D0044CCCE /* NewStageViewController.m in Sources */,
 				4FD4A9CA2ED1292F00D197B0 /* BAImageUpscaler.m in Sources */,
-				4FBB0DDD2B979D4600AA16DB /* BAU7TileInterpreter.m in Sources */,
 				4F18074B281380F400C3830F /* BAAIManager.m in Sources */,
 				4FC79DDB26DC89F100D7B4E8 /* U7ChunkViewController.m in Sources */,
 				4F6FED942ECEA8650026AC74 /* BAScrollableMapViewController.m in Sources */,

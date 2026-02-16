@@ -688,6 +688,7 @@ enum BATileSetType
 @interface BAU7BitmapInterpreter : NSObject
 {
     U7Environment * environment;
+    NSDictionary * tileToChunkMapping;
 }
 -(BOOL)setEnvironment:(U7Environment*)theEnvironment;
 -(BOOL)IsOutOfBounds:(BABitmap*)bitmap atX:(int)x atY:(int)y;

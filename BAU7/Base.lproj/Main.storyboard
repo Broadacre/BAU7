@@ -780,6 +780,8 @@
                         <segue destination="AY1-yF-QSm" kind="relationship" relationship="viewControllers" id="dungeon-tab"/>
                         <segue destination="iIf-74-QIR" kind="relationship" relationship="viewControllers" id="newstage-tab"/>
                         <segue destination="uab-sE-UfR" kind="relationship" relationship="viewControllers" id="island-tab"/>
+                        <segue destination="MAP-ANALYZER-VC" kind="relationship" relationship="viewControllers" id="analyzer-tab"/>
+
                     </connections>
                 </tabBarController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="ksK-Bu-6t0" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -803,6 +805,21 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="aqX-Zl-5uT" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-2723" y="-459"/>
+        </scene>
+            <!--Map Analyzer-->
+        <scene sceneID="MAP-ANALYZER-001">
+            <objects>
+                <viewController id="MAP-ANALYZER-VC" customClass="MapAnalyzerViewController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="MAP-ANALYZER-VIEW">
+                        <rect key="frame" x="0.0" y="0.0" width="1024" height="1366"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                    <tabBarItem key="tabBarItem" title="Analyzer" image="chart.bar.doc.horizontal" catalog="system" id="MAP-ANALYZER-TAB"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="MAP-ANALYZER-RESP" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-400" y="1200"/>
         </scene>
     </scenes>
     <resources>

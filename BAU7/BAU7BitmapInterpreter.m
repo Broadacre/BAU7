@@ -169,7 +169,7 @@
         // Load tile-to-chunk mapping from JSON
         NSString *jsonPath = [[NSBundle mainBundle] pathForResource:@"TileToChunkMapping" 
                                                               ofType:@"json" 
-                                                         inDirectory:@"Resources/TileMappings"];
+                                                         inDirectory:nil];
         
         NSLog(@"BAU7BitmapInterpreter init: Looking for TileToChunkMapping.json");
         NSLog(@"  Path: %@", jsonPath ? jsonPath : @"NOT FOUND");

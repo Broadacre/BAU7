@@ -75,8 +75,8 @@
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         
         // Load the U7 map from the environment
-        U7Environment *env = [U7Environment sharedEnvironment];
-        U7Map *map = env.u7Map;
+        U7Environment *env = u7Env;
+        U7Map *map = env->Map;
         
         if (!map) {
             dispatch_async(dispatch_get_main_queue(), ^{

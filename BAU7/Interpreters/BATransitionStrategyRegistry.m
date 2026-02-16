@@ -8,6 +8,7 @@
 #import "Includes.h"
 #import "BATransitionStrategyRegistry.h"
 #import "BAWoodsTransitionStrategy.h"
+#import "BAGrassTransitionStrategy.h"
 
 @implementation BATransitionStrategyRegistry
 {
@@ -33,6 +34,7 @@
         
         // Register explicit strategy implementations
         [self registerStrategy:[[BAWoodsTransitionStrategy alloc] init]];
+        [self registerStrategy:[[BAGrassTransitionStrategy alloc] init]];
         
         // Load data-driven transition mappings for remaining terrains
         [self loadTransitionMappings];

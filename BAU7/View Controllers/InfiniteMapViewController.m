@@ -64,8 +64,13 @@
         _firstLayout=YES;
         _chunksToDraw=CHUNKSTODRAW;
         _visibleLabels = [[NSMutableArray alloc] init];
+        
+        // u7Env is loaded at app launch in AppDelegate - just use it
         if(!u7Env)
-            u7Env=[[U7Environment alloc]init];
+        {
+            NSLog(@"Warning: u7Env not loaded yet in InfiniteMapViewController");
+        }
+        
         mapView= [[BAMapView alloc] init];
         _mapLocation=CGPointMake(    50, 65);
         _globalLocation=[self globalLocationForMapLocation];

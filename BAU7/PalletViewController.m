@@ -25,29 +25,38 @@
 
 -(void)viewDidAppear:(BOOL)animated
 {
-    
     if(!u7Env)
     {
-       
+        NSLog(@"u7Env is still loading, waiting for notification...");
+        
         UIAlertController *alertController = [UIAlertController
-                                                          alertControllerWithTitle:@"Loading U7 Environment"
-                                                          message:@"This may take a while"
-                                                          preferredStyle:UIAlertControllerStyleAlert];
+                                              alertControllerWithTitle:@"Loading U7 Environment"
+                                              message:@"Please wait..."
+                                              preferredStyle:UIAlertControllerStyleAlert];
+        
         UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
         while (topController.presentedViewController)
-            {
+        {
             topController = topController.presentedViewController;
-            }
-        [topController presentViewController:alertController animated:YES completion:^{
-        u7Env=[[U7Environment alloc]init];
-        [self setupView];
-        [alertController dismissViewControllerAnimated:YES completion:nil];
+        }
+        
+        [topController presentViewController:alertController animated:YES completion:nil];
+        
+        // Wait for environment to finish loading
+        [[NSNotificationCenter defaultCenter] addObserverForName:@"U7EnvironmentReady"
+                                                           object:nil
+                                                            queue:[NSOperationQueue mainQueue]
+                                                       usingBlock:^(NSNotification *note) {
+            NSLog(@"U7 Environment ready, setting up pallet view");
+            [alertController dismissViewControllerAnimated:YES completion:^{
+                [self setupView];
+            }];
         }];
     }
     else
+    {
         [self setupView];
-    
-    
+    }
 }
 
 -(void)setupView

@@ -48,8 +48,13 @@
     
     firstLayout=YES;
     chunksToDraw=CHUNKSTODRAW;
+    
+    // u7Env is loaded at app launch in AppDelegate - just use it
     if(!u7Env)
-        u7Env=[[U7Environment alloc]init];
+    {
+        NSLog(@"Warning: u7Env not loaded yet in NewMapViewController");
+    }
+    
     if(!mapView)
         NSLog(@"Bad Mapview");
     [mapView init];

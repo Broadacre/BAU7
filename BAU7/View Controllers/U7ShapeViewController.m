@@ -68,35 +68,38 @@
     //[u7view drawRect:CGRectMake(0, 0, 10, 10)];x
     if(!u7Env)
     {
-       
+        NSLog(@"u7Env is still loading, waiting for notification...");
+        
         UIAlertController *alertController = [UIAlertController
-                                                          alertControllerWithTitle:@"Loading U7 Environment"
-                                                          message:@"This may take a while"
-                                                          preferredStyle:UIAlertControllerStyleAlert];
-                    
-                    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
-                    while (topController.presentedViewController)
-                    {
-                        topController = topController.presentedViewController;
-                    }
-                    
-                    [topController presentViewController:alertController animated:YES completion:^{
-                        
-                        u7Env=[[U7Environment alloc]init];
-                        
-                        self->currentShapeLibrary=u7Env->U7Shapes;
-                        [self setupView];
-                        
-                        
-                        [alertController dismissViewControllerAnimated:YES completion:nil];
-                        
-                    }];
-                    
-
+                                              alertControllerWithTitle:@"Loading U7 Environment"
+                                              message:@"Please wait..."
+                                              preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+        while (topController.presentedViewController)
+        {
+            topController = topController.presentedViewController;
+        }
+        
+        [topController presentViewController:alertController animated:YES completion:nil];
+        
+        // Wait for environment to finish loading
+        [[NSNotificationCenter defaultCenter] addObserverForName:@"U7EnvironmentReady"
+                                                           object:nil
+                                                            queue:[NSOperationQueue mainQueue]
+                                                       usingBlock:^(NSNotification *note) {
+            NSLog(@"U7 Environment ready, setting up shape view");
+            self->currentShapeLibrary = u7Env->U7Shapes;
+            [alertController dismissViewControllerAnimated:YES completion:^{
+                [self setupView];
+            }];
+        }];
     }
     else
+    {
+        self->currentShapeLibrary = u7Env->U7Shapes;
         [self setupView];
-   
+    }
 }
 
 -(void)setupView

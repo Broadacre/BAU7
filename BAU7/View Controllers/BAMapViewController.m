@@ -70,43 +70,41 @@ uint16_t ReverseInt16( uint16_t nonreversed )
     
     if(!u7Env)
     {
-        NSLog(@"u7Env is nil, showing alert");
-       
+        NSLog(@"u7Env is still loading, waiting for notification...");
+        
+        // Show loading alert
         UIAlertController *alertController = [UIAlertController
-                                                          alertControllerWithTitle:@"Loading U7 Environment"
-                                                          message:@"This may take a while"
-                                                          preferredStyle:UIAlertControllerStyleAlert];
-                    
-                    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
-                    while (topController.presentedViewController)
-                    {
-                        topController = topController.presentedViewController;
-                    }
-                    
-                    [topController presentViewController:alertController animated:YES completion:^{
-                        NSLog(@"Alert completion block running");
-                        
-                        u7Env=[[U7Environment alloc]init];
-                        if(!self->u7view)
-                        {
-                            NSLog(@"Calling setupView from alert");
-                            [self setupView];
-                        }
-                       
-                        
-                        [alertController dismissViewControllerAnimated:YES completion:nil];
-                        
-                    }];
-                    
-
+                                              alertControllerWithTitle:@"Loading U7 Environment"
+                                              message:@"Please wait..."
+                                              preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+        while (topController.presentedViewController)
+        {
+            topController = topController.presentedViewController;
+        }
+        
+        [topController presentViewController:alertController animated:YES completion:nil];
+        
+        // Wait for environment to finish loading
+        [[NSNotificationCenter defaultCenter] addObserverForName:@"U7EnvironmentReady"
+                                                           object:nil
+                                                            queue:[NSOperationQueue mainQueue]
+                                                       usingBlock:^(NSNotification *note) {
+            NSLog(@"U7 Environment ready, setting up view");
+            [alertController dismissViewControllerAnimated:YES completion:^{
+                if(!self->u7view)
+                {
+                    [self setupView];
+                }
+            }];
+        }];
     }
     else
     {
-        NSLog(@"u7Env exists, calling setupView directly");
+        NSLog(@"u7Env already loaded, calling setupView directly");
         [self setupView];
     }
-    //NSLog(@"totalsize: %li",u7Env->totalSize);
-   
 }
 -(void)setupView
     {

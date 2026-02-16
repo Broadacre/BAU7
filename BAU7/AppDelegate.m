@@ -29,6 +29,18 @@
                             printf( "ATTACHED: %s\n", controller.vendorName.UTF8String );
                         }
          ];
+    
+    // Load U7 environment once at app launch - shared across all view controllers
+    NSLog(@"Loading U7 Environment at app launch...");
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        u7Env = [[U7Environment alloc] init];
+        NSLog(@"U7 Environment loaded successfully");
+        
+        // Post notification that environment is ready
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"U7EnvironmentReady" object:nil];
+        });
+    });
    
     return YES;
 }

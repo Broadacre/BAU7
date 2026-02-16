@@ -408,6 +408,9 @@
 		4F2C241526BE0ED500E5F92C /* ULTIMA7.COM in Resources */ = {isa = PBXBuildFile; fileRef = 4F2C229626BE0ED500E5F92C /* ULTIMA7.COM */; };
 		4F2C7F042873C168004E4B76 /* BATable.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F2C7F032873C168004E4B76 /* BATable.m */; };
 		4F429BAC2747230C00BFAB0B /* NewMapViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F429BAB2747230C00BFAB0B /* NewMapViewController.m */; };
+		4F4EA3292F43D3BC00038D37 /* BAMapAnalyzer.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F4EA3282F43D3BC00038D37 /* BAMapAnalyzer.m */; };
+		4F4EA32B2F43D3C900038D37 /* BAGrassTransitionStrategy.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F4EA32A2F43D3C900038D37 /* BAGrassTransitionStrategy.m */; };
+		4F4EA32E2F43D3DE00038D37 /* MapAnalyzerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F4EA32D2F43D3DE00038D37 /* MapAnalyzerViewController.m */; };
 		4F5473FC26D5CFFF0098D71A /* BAMapView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F5473FB26D5CFFF0098D71A /* BAMapView.m */; };
 		4F5473FF26D5D0810098D71A /* BAU7Objects.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F5473FE26D5D0810098D71A /* BAU7Objects.m */; };
 		4F5A64C1273EC2F200C4C556 /* InfiniteMapViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F5A64C0273EC2F200C4C556 /* InfiniteMapViewController.m */; };
@@ -883,6 +886,11 @@
 		4F2CF1A82849B9A300E04FB3 /* enums.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = enums.h; sourceTree = "<group>"; };
 		4F429BAA2747230C00BFAB0B /* NewMapViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NewMapViewController.h; sourceTree = "<group>"; };
 		4F429BAB2747230C00BFAB0B /* NewMapViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NewMapViewController.m; sourceTree = "<group>"; };
+		4F4EA3272F43D3BC00038D37 /* BAMapAnalyzer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BAMapAnalyzer.h; sourceTree = "<group>"; };
+		4F4EA3282F43D3BC00038D37 /* BAMapAnalyzer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BAMapAnalyzer.m; sourceTree = "<group>"; };
+		4F4EA32A2F43D3C900038D37 /* BAGrassTransitionStrategy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BAGrassTransitionStrategy.m; sourceTree = "<group>"; };
+		4F4EA32C2F43D3DE00038D37 /* MapAnalyzerViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MapAnalyzerViewController.h; sourceTree = "<group>"; };
+		4F4EA32D2F43D3DE00038D37 /* MapAnalyzerViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MapAnalyzerViewController.m; sourceTree = "<group>"; };
 		4F5473FA26D5CFFF0098D71A /* BAMapView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BAMapView.h; sourceTree = "<group>"; };
 		4F5473FB26D5CFFF0098D71A /* BAMapView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BAMapView.m; sourceTree = "<group>"; };
 		4F5473FD26D5D0810098D71A /* BAU7Objects.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BAU7Objects.h; sourceTree = "<group>"; };
@@ -1011,6 +1019,8 @@
 		4F2C20E126BE0C8F00E5F92C /* BAU7 */ = {
 			isa = PBXGroup;
 			children = (
+				4F4EA3272F43D3BC00038D37 /* BAMapAnalyzer.h */,
+				4F4EA3282F43D3BC00038D37 /* BAMapAnalyzer.m */,
 				4FE06FBF2F43BAEB003C1250 /* Resources */,
 				4FCBCFD22B979B2500E9A782 /* Interpreters */,
 				4F7FF4CD2B77CEDA000171BD /* ProceduralGeneration */,
@@ -1526,6 +1536,8 @@
 		4F7FF4CF2B77CF3A000171BD /* View Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				4F4EA32C2F43D3DE00038D37 /* MapAnalyzerViewController.h */,
+				4F4EA32D2F43D3DE00038D37 /* MapAnalyzerViewController.m */,
 				4F6FED922ECEA8400026AC74 /* BAScrollableMapViewController.h */,
 				4F6FED932ECEA8650026AC74 /* BAScrollableMapViewController.m */,
 				4F2C20E826BE0C8F00E5F92C /* BAMapViewController.h */,
@@ -1564,6 +1576,7 @@
 		4FCBCFD22B979B2500E9A782 /* Interpreters */ = {
 			isa = PBXGroup;
 			children = (
+				4F4EA32A2F43D3C900038D37 /* BAGrassTransitionStrategy.m */,
 				4FA4D6CD2F42C2B90096DE17 /* BAGrassTransitionStrategy.h */,
 				4FA4D6CE2F42C2B90096DE17 /* BATerrainTransitionStrategy.h */,
 				4FA4D6CF2F42C2B90096DE17 /* BATransitionStrategyRegistry.h */,
@@ -2129,6 +2142,7 @@
 				4F5473FC26D5CFFF0098D71A /* BAMapView.m in Sources */,
 				4F7FF4D52B7EE231000171BD /* BARandomDungeonGeneratorDeux.m in Sources */,
 				4F6F3A0F26DE7A0400827587 /* BAU7ChunkView.m in Sources */,
+				4F4EA32E2F43D3DE00038D37 /* MapAnalyzerViewController.m in Sources */,
 				4F5473FF26D5D0810098D71A /* BAU7Objects.m in Sources */,
 				4F99995626FD583D008CA2DA /* BASpriteAction.m in Sources */,
 				4F1B0193296BC4EB00F83A87 /* BAU7PalletView.m in Sources */,
@@ -2143,6 +2157,7 @@
 				4F99995C2703F353008CA2DA /* BASprite.m in Sources */,
 				4F429BAC2747230C00BFAB0B /* NewMapViewController.m in Sources */,
 				4F6943FE2B69CD720001400E /* BAIslandGenerator.m in Sources */,
+				4F4EA32B2F43D3C900038D37 /* BAGrassTransitionStrategy.m in Sources */,
 				4FB0CF242706462B008DB4DD /* CGPointUtilties.m in Sources */,
 				4FF5E92D2C0FBE0900D9C43E /* ShapeReferenceXMLParser.m in Sources */,
 				4FE4AB8B27091FB000E1F798 /* BACamera.m in Sources */,
@@ -2153,6 +2168,7 @@
 				4F18074B281380F400C3830F /* BAAIManager.m in Sources */,
 				4FC79DDB26DC89F100D7B4E8 /* U7ChunkViewController.m in Sources */,
 				4F6FED942ECEA8650026AC74 /* BAScrollableMapViewController.m in Sources */,
+				4F4EA3292F43D3BC00038D37 /* BAMapAnalyzer.m in Sources */,
 				4F225D582B2B8F9B002CAE14 /* IslandMapViewController.m in Sources */,
 				4F2C20F526BE0C9000E5F92C /* main.m in Sources */,
 				4F5A64C1273EC2F200C4C556 /* InfiniteMapViewController.m in Sources */,

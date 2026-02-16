@@ -55,8 +55,12 @@
     for (int chunkY = 0; chunkY < mapHeight; chunkY++) {
         for (int chunkX = 0; chunkX < mapWidth; chunkX++) {
             
-            U7Chunk *chunk = [_map chunkAtX:chunkX y:chunkY];
-            if (!chunk) continue;
+            long chunkIndex = [_map chunkIDForChunkCoordinate:CGPointMake(chunkX, chunkY)];
+            U7MapChunk *mapChunk = [_map mapChunkAtIndex:chunkIndex];
+            if (!mapChunk) continue;
+            
+            U7Chunk *chunk = mapChunk->masterChunk;
+            if (!chunk || !chunk->chunkMap) continue;
             
             for (int tileY = 0; tileY < chunkSize; tileY++) {
                 for (int tileX = 0; tileX < chunkSize; tileX++) {
@@ -69,16 +73,21 @@
                         continue; // Already processed
                     }
                     
-                    BATileType tileType = [chunk tileTypeAtX:tileX y:tileY];
-                    
-                    // Is this a building tile?
-                    if ([self isBuildingTile:tileType]) {
-                        // Found unvisited building - flood fill to find cluster
-                        NSDictionary *city = [self floodFillBuildingsFromX:worldX y:worldY];
+                    // Get shape ID from chunk map
+                    int tileIndex = tileY * chunkSize + tileX;
+                    if (tileIndex < [chunk->chunkMap count]) {
+                        U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
+                        long shapeID = chunkIdx->shapeIndex;
                         
-                        // Only count large clusters as cities (> 50 tiles)
-                        if ([city[@"tileCount"] intValue] > 50) {
-                            [_cities addObject:city];
+                        // Is this a building tile? (buildings are typically shapes 300-500, 800-900)
+                        if ([self isBuildingShape:shapeID]) {
+                            // Found unvisited building - flood fill to find cluster
+                            NSDictionary *city = [self floodFillBuildingsFromX:worldX y:worldY];
+                            
+                            // Only count large clusters as cities (> 50 tiles)
+                            if ([city[@"tileCount"] intValue] > 50) {
+                                [_cities addObject:city];
+                            }
                         }
                     }
                 }
@@ -114,12 +123,21 @@
         int tileX = x % 16;
         int tileY = y % 16;
         
-        U7Chunk *chunk = [_map chunkAtX:chunkX y:chunkY];
-        if (!chunk) continue;
+        long chunkIndex = [_map chunkIDForChunkCoordinate:CGPointMake(chunkX, chunkY)];
+        U7MapChunk *mapChunk = [_map mapChunkAtIndex:chunkIndex];
+        if (!mapChunk) continue;
         
-        BATileType tileType = [chunk tileTypeAtX:tileX y:tileY];
+        U7Chunk *chunk = mapChunk->masterChunk;
+        if (!chunk || !chunk->chunkMap) continue;
         
-        if (![self isBuildingTile:tileType]) {
+        // Get shape ID from chunk map
+        int tileIndex = tileY * 16 + tileX;
+        if (tileIndex >= [chunk->chunkMap count]) continue;
+        
+        U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
+        long shapeID = chunkIdx->shapeIndex;
+        
+        if (![self isBuildingShape:shapeID]) {
             continue; // Not a building
         }
         
@@ -132,12 +150,12 @@
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;
         if (y > maxY) maxY = y;
-        
-        // Add neighbors to queue
-        [queue addObject:@[@(x+1), @(y)]];
-        [queue addObject:@[@(x-1), @(y)]];
-        [queue addObject:@[@(x), @(y+1)]];
-        [queue addObject:@[@(x), @(y-1)]];
+        // Add neighbors to queue (with bounds checking)
+        int maxWorldTile = 192 * 16; // 192 chunks * 16 tiles = 3072 tiles
+        if (x + 1 < maxWorldTile) [queue addObject:@[@(x+1), @(y)]];
+        if (x > 0) [queue addObject:@[@(x-1), @(y)]];
+        if (y + 1 < maxWorldTile) [queue addObject:@[@(x), @(y+1)]];
+        if (y > 0) [queue addObject:@[@(x), @(y-1)]];
     }
     
     return @{
@@ -149,15 +167,15 @@
     };
 }
 
-- (BOOL)isBuildingTile:(BATileType)tileType
+- (BOOL)isBuildingShape:(long)shapeID
 {
-    // Building tiles are typically in certain ranges
-    // This is a simple heuristic - may need refinement
+    // Building shapes are typically in certain ranges in Ultima VII
+    // This is a simple heuristic - may need refinement based on actual U7 data
     
-    // Check if it's a structure/building type
-    // (You'll need to adjust these ranges based on actual U7 tile types)
-    return (tileType >= 300 && tileType <= 500) ||  // Buildings
-           (tileType >= 800 && tileType <= 900);     // More buildings
+    // Common building shape ranges in U7:
+    // Walls, doors, roofs, etc. are typically shapes 300-500, 800-900
+    return (shapeID >= 300 && shapeID <= 500) ||
+           (shapeID >= 800 && shapeID <= 900);
 }
 
 - (void)analyzeTerrainDistribution
@@ -177,11 +195,21 @@
             int tileX = worldX % 16;
             int tileY = worldY % 16;
             
-            U7Chunk *chunk = [_map chunkAtX:chunkX y:chunkY];
-            if (!chunk) continue;
+            long chunkIndex = [_map chunkIDForChunkCoordinate:CGPointMake(chunkX, chunkY)];
+            U7MapChunk *mapChunk = [_map mapChunkAtIndex:chunkIndex];
+            if (!mapChunk) continue;
             
-            BATileType tileType = [chunk tileTypeAtX:tileX y:tileY];
-            NSString *terrainName = [self terrainNameForTileType:tileType];
+            U7Chunk *chunk = mapChunk->masterChunk;
+            if (!chunk || !chunk->chunkMap) continue;
+            
+            // Get shape ID from chunk map
+            int tileIndex = tileY * 16 + tileX;
+            if (tileIndex >= [chunk->chunkMap count]) continue;
+            
+            U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
+            long shapeID = chunkIdx->shapeIndex;
+            
+            NSString *terrainName = [self terrainNameForShapeID:shapeID];
             
             counts[terrainName] = @([counts[terrainName] intValue] + 1);
             totalSamples++;
@@ -195,17 +223,44 @@
     }
 }
 
-- (NSString *)terrainNameForTileType:(BATileType)tileType
+- (NSString *)terrainNameForShapeID:(long)shapeID
 {
-    // Simple classification - refine based on actual tile types
-    if (tileType == GrassTileType) return @"grass";
-    if (tileType == WoodsTileType) return @"forest";
-    if (tileType == WaterTileType) return @"water";
-    if (tileType == MountainTileType) return @"mountains";
-    if (tileType == SwampTileType) return @"swamp";
-    if (tileType == DesertTileType) return @"desert";
+    // Simple classification based on shape ID ranges
+    // These ranges are approximations and may need refinement based on actual U7 data
     
-    if ([self isBuildingTile:tileType]) return @"buildings";
+    if ([self isBuildingShape:shapeID]) {
+        return @"buildings";
+    }
+    
+    // Grass/ground tiles (common base terrain)
+    if (shapeID >= 0 && shapeID <= 50) {
+        return @"grass";
+    }
+    
+    // Trees/forest
+    if (shapeID >= 150 && shapeID <= 250) {
+        return @"forest";
+    }
+    
+    // Water
+    if (shapeID >= 50 && shapeID <= 100) {
+        return @"water";
+    }
+    
+    // Mountains/rocks
+    if (shapeID >= 100 && shapeID <= 150) {
+        return @"mountains";
+    }
+    
+    // Swamp
+    if (shapeID >= 600 && shapeID <= 650) {
+        return @"swamp";
+    }
+    
+    // Desert/sand
+    if (shapeID >= 550 && shapeID <= 600) {
+        return @"desert";
+    }
     
     return @"other";
 }

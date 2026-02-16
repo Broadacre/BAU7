@@ -7,6 +7,8 @@
 
 #import <Foundation/Foundation.h>
 
+@class BATransitionStrategyRegistry;
+
 NS_ASSUME_NONNULL_BEGIN
 enum BATileType{
   NoTileType=0,
@@ -689,6 +691,7 @@ enum BATileSetType
 {
     U7Environment * environment;
     NSDictionary * tileToChunkMapping;
+    BATransitionStrategyRegistry * transitionRegistry;
 }
 -(BOOL)setEnvironment:(U7Environment*)theEnvironment;
 -(BOOL)IsOutOfBounds:(BABitmap*)bitmap atX:(int)x atY:(int)y;

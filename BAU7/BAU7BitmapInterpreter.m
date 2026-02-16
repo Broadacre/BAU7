@@ -7,6 +7,7 @@
 
 #import "Includes.h"
 #import "BAU7BitmapInterpreter.h"
+#import "BATransitionStrategyRegistry.h"
 
 
 @implementation BATileComparator
@@ -162,6 +163,9 @@
 {
     self = [super init];
     if (self) {
+        // Initialize transition strategy registry
+        transitionRegistry = [BATransitionStrategyRegistry sharedRegistry];
+        
         // Load tile-to-chunk mapping from JSON
         NSString *jsonPath = [[NSBundle mainBundle] pathForResource:@"TileToChunkMapping" 
                                                               ofType:@"json" 
@@ -237,6 +241,15 @@
 
 -(enum BATileType)TileTypeForTransitionType:(enum BATileType)fromType toTileType:(enum BATileType)toType forTransition:(enum BATransitionType)transitionType
 {
+    // Try strategy-based lookup first (refactored terrains)
+    enum BATileType strategyResult = [transitionRegistry tileTypeFrom:fromType 
+                                                                    to:toType 
+                                                          forTransition:transitionType];
+    if (strategyResult != NoTileType) {
+        return strategyResult;
+    }
+    
+    // Fall back to legacy switch-based logic for terrains not yet refactored
     enum BATileType tileType=NoTileType;
     //NSLog(@"TileTypeForTransitionType: from: %i to: %i",fromType,toType);
     

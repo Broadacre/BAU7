@@ -170,6 +170,10 @@
         NSString *jsonPath = [[NSBundle mainBundle] pathForResource:@"TileToChunkMapping" 
                                                               ofType:@"json" 
                                                          inDirectory:@"Resources/TileMappings"];
+        
+        NSLog(@"BAU7BitmapInterpreter init: Looking for TileToChunkMapping.json");
+        NSLog(@"  Path: %@", jsonPath ? jsonPath : @"NOT FOUND");
+        
         if (jsonPath) {
             NSData *jsonData = [NSData dataWithContentsOfFile:jsonPath];
             NSError *error = nil;
@@ -188,10 +192,18 @@
                     intMapping[intKey] = jsonMapping[key];
                 }
                 tileToChunkMapping = [intMapping copy];
-                NSLog(@"Loaded %lu tile-to-chunk mappings from JSON", (unsigned long)[tileToChunkMapping count]);
+                NSLog(@"✅ Loaded %lu tile-to-chunk mappings from JSON", (unsigned long)[tileToChunkMapping count]);
+                
+                // Verify a few key mappings for debugging
+                NSLog(@"  GrassTileType(3) -> chunk %@", tileToChunkMapping[@3]);
+                NSLog(@"  WoodsTileType(4) -> chunk %@", tileToChunkMapping[@4]);
+                NSLog(@"  WaterTileType(1) -> chunk %@", tileToChunkMapping[@1]);
             }
         } else {
-            NSLog(@"ERROR: Could not find TileToChunkMapping.json");
+            NSLog(@"❌ ERROR: Could not find TileToChunkMapping.json in bundle");
+            NSLog(@"  Make sure the file is added to the Xcode project as a resource");
+            NSLog(@"  Right-click project -> Add Files -> Select TileToChunkMapping.json");
+            NSLog(@"  Check 'Add to targets: BAU7'");
             tileToChunkMapping = @{}; // Empty dict as fallback
         }
     }
@@ -2072,7 +2084,15 @@
     }
     
     // Fallback for unmapped types
-    NSLog(@"WARNING: No chunk mapping for tileType %d", (int)tileType);
+    NSLog(@"⚠️ WARNING: No chunk mapping for tileType %d", (int)tileType);
+    NSLog(@"  Dictionary has %lu mappings", (unsigned long)[tileToChunkMapping count]);
+    NSLog(@"  Returning default chunk 1836");
+    
+    // If dictionary is empty, this is likely because JSON wasn't loaded
+    if ([tileToChunkMapping count] == 0) {
+        NSLog(@"  ❌ Mapping dictionary is EMPTY - JSON file not loaded!");
+    }
+    
     return 1836; // Default error chunk
 }
 

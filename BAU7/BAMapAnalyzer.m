@@ -93,6 +93,9 @@
     int mapWidth = 192;  // U7 map is 192 chunks wide (3 superchunks * 64 chunks)
     int mapHeight = 192; // 192 chunks tall
     int chunkSize = 16;  // Each chunk is 16x16 tiles
+    int buildingTilesFound = 0;
+    
+    NSLog(@"Scanning for building clusters...");
     
     // Scan every tile looking for building clusters
     for (int chunkY = 0; chunkY < mapHeight; chunkY++) {
@@ -122,14 +125,24 @@
                         U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
                         long shapeID = chunkIdx->shapeIndex;
                         
-                        // Is this a building tile? (buildings are typically shapes 300-500, 800-900)
+                        // Is this a building tile?
                         if ([self isBuildingShape:shapeID]) {
+                            buildingTilesFound++;
+                            
                             // Found unvisited building - flood fill to find cluster
                             NSDictionary *city = [self floodFillBuildingsFromX:worldX y:worldY];
                             
+                            int clusterSize = [city[@"tileCount"] intValue];
+                            
                             // Only count large clusters as cities (> 50 tiles)
-                            if ([city[@"tileCount"] intValue] > 50) {
+                            if (clusterSize > 50) {
+                                NSLog(@"Found city cluster: %d buildings at (%@, %@)", 
+                                      clusterSize, city[@"x"], city[@"y"]);
                                 [_cities addObject:city];
+                            } else if (clusterSize > 5) {
+                                // Log smaller clusters for debugging
+                                NSLog(@"Found small building cluster: %d tiles at (%@, %@)", 
+                                      clusterSize, city[@"x"], city[@"y"]);
                             }
                         }
                     }
@@ -137,6 +150,9 @@
             }
         }
     }
+    
+    NSLog(@"Scan complete: Found %d total building tiles, %lu cities", 
+          buildingTilesFound, (unsigned long)[_cities count]);
 }
 
 - (NSDictionary *)floodFillBuildingsFromX:(int)startX y:(int)startY
@@ -212,13 +228,15 @@
 
 - (BOOL)isBuildingShape:(long)shapeID
 {
-    // Building shapes are typically in certain ranges in Ultima VII
-    // This is a simple heuristic - may need refinement based on actual U7 data
+    // Building components in Ultima VII:
+    // Doors: ~270-350
+    // Roofs: ~300-400
+    // Walls (stone, brick, wood): ~400-700
+    // Chimneys, signs: scattered ~500-800
     
-    // Common building shape ranges in U7:
-    // Walls, doors, roofs, etc. are typically shapes 300-500, 800-900
-    return (shapeID >= 300 && shapeID <= 500) ||
-           (shapeID >= 800 && shapeID <= 900);
+    // Broader detection for building-related shapes
+    return (shapeID >= 270 && shapeID <= 750) ||   // Main building components
+           (shapeID >= 800 && shapeID <= 850);     // Some additional structures
 }
 
 - (void)analyzeTerrainDistribution

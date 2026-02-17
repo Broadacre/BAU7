@@ -410,13 +410,20 @@ enum {
 
 - (int)terrainTypeForShapeID:(long)shapeID
 {
-    // Based on actual U7 shape distribution:
-    // Shape 19 (31.6%) = grass (most common)
-    // Shape 8 (9.8%) = dirt/ground
-    // Shape 48 (6.5%) = water
-    // Shape 147-149 (~13%) = trees
-    // Shape 10, 64, 65 = paths/roads
-    // Shape 134, 139, 146 = mountains (just before trees)
+    // Based on ACTUAL corner chunk analysis (all corners are water):
+    // CONFIRMED WATER: Shape 19 (31.6%), Shape 30 (2.1%)
+    // CONFIRMED TREES: Shapes 147-149 (~13%)
+    // LIKELY GRASS: Shape 8 (9.8%), 10, 12, 17, 20, 21, 26 (not in water corners)
+    
+    // WATER - Shapes seen in all four corner chunks
+    if (shapeID == 19 || shapeID == 30) {
+        return TerrainTypeWater;
+    }
+    
+    // Also check nearby water shapes (coastline/shallow water)
+    if (shapeID >= 31 && shapeID <= 70) {
+        return TerrainTypeWater;
+    }
     
     // Trees/forest (147-149 confirmed from distribution)
     if (shapeID >= 147 && shapeID <= 149) {
@@ -428,13 +435,8 @@ enum {
         return TerrainTypeMountain;
     }
     
-    // Water (40-70 range includes shape 48, 51, 64, 65)
-    if (shapeID >= 40 && shapeID <= 70) {
-        return TerrainTypeWater;
-    }
-    
-    // Grass (includes shapes 8, 10, 12, 17, 19, 20, 21, 26, 30)
-    if ((shapeID >= 8 && shapeID <= 30) || shapeID == 2) {
+    // Grass (shapes 8, 10, 12, 17, 20, 21, 26 - but NOT 19 or 30 which are water!)
+    if ((shapeID >= 8 && shapeID <= 28 && shapeID != 19) || shapeID == 2) {
         return TerrainTypeGrass;
     }
     

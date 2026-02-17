@@ -478,42 +478,36 @@
             U7Chunk *chunk = mapChunk->masterChunk;
             if (!chunk || !chunk->chunkMap) continue;
             
-            // FIRST: Check if chunk contains ANY mountain shapes
-            // Mountains are objects placed on top, so their presence overrides base terrain
-            BOOL hasMountainShapes = NO;
-            int maxCount = [chunk->chunkMap count];
-            
             // DIAGNOSTIC for chunk (53,60)
             BOOL isTestChunk = (chunkX == 53 && chunkY == 60);
             if (isTestChunk) {
-                NSLog(@"DIAGNOSTIC: Checking chunk (53,60) for mountain shapes, tile count=%d", maxCount);
+                NSLog(@"DIAGNOSTIC: Checking chunk (53,60) for mountain shapes");
+                NSLog(@"  Base terrain tiles: %lu", (unsigned long)[chunk->chunkMap count]);
+                NSLog(@"  Static items: %lu", (unsigned long)[mapChunk->staticItems count]);
             }
             
-            NSMutableSet *uniqueShapes = isTestChunk ? [NSMutableSet set] : nil;
+            // FIRST: Check if chunk contains ANY mountain shapes
+            // Mountains are OBJECTS in staticItems, not base terrain in chunkMap
+            BOOL hasMountainShapes = NO;
             
-            for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
-                U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
-                long shapeID = chunkIdx->shapeIndex;
-                
-                if (isTestChunk) {
-                    [uniqueShapes addObject:@(shapeID)];
-                    if (tileIdx < 20) {
-                        NSLog(@"  Tile %d: shapeID=%ld, isMountain=%d", tileIdx, shapeID, [self isMountainShape:shapeID]);
-                    }
-                }
-                
-                if ([self isMountainShape:shapeID]) {
-                    hasMountainShapes = YES;
+            // Check staticItems (where mountains actually are!)
+            if (mapChunk->staticItems) {
+                for (U7ShapeReference *item in mapChunk->staticItems) {
+                    long shapeID = item->shapeIndex;
+                    
                     if (isTestChunk) {
-                        NSLog(@"  -> FOUND MOUNTAIN SHAPE %ld at tile %d!", shapeID, tileIdx);
+                        NSLog(@"  StaticItem: shapeID=%ld, frame=%d, isMountain=%d", 
+                              shapeID, item->frameIndex, [self isMountainShape:shapeID]);
                     }
-                    break; // Found a mountain shape - this is a mountain chunk
+                    
+                    if ([self isMountainShape:shapeID]) {
+                        hasMountainShapes = YES;
+                        if (isTestChunk) {
+                            NSLog(@"  -> FOUND MOUNTAIN SHAPE %ld in staticItems!", shapeID);
+                        }
+                        break;
+                    }
                 }
-            }
-            
-            if (isTestChunk) {
-                NSArray *sortedShapes = [[uniqueShapes allObjects] sortedArrayUsingSelector:@selector(compare:)];
-                NSLog(@"  ALL unique shapes in chunk (53,60): %@", sortedShapes);
             }
             
             if (isTestChunk) {

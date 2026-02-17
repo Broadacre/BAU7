@@ -500,7 +500,12 @@
             
             // Check staticItems (where mountains actually are!)
             if (mapChunk->staticItems) {
+                int itemIdx = 0;
                 for (id item in mapChunk->staticItems) {
+                    if (isTestChunk) {
+                        NSLog(@"  StaticItem[%d]: class=%@", itemIdx, NSStringFromClass([item class]));
+                    }
+                    
                     long shapeID = -1;
                     int frameIndex = -1;
 
@@ -514,6 +519,9 @@
                         #pragma clang diagnostic pop
                     } else if ([typedItem respondsToSelector:@selector(shape)]) {
                         id shapeObj = [typedItem shape];
+                        if (isTestChunk) {
+                            NSLog(@"    -> Has 'shape' property: class=%@", NSStringFromClass([shapeObj class]));
+                        }
                         if ([shapeObj respondsToSelector:@selector(index)]) {
                             #pragma clang diagnostic push
                             #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
@@ -546,15 +554,16 @@
                             }
                         } @catch (__unused NSException *e) {}
                     }
+                    
+                    if (isTestChunk) {
+                        NSLog(@"    -> Extracted shapeID=%ld, frame=%d, isMountain=%d",
+                              shapeID, frameIndex, (shapeID != -1 ? [self isMountainShape:shapeID] : -1));
+                    }
 
                     if (shapeID == -1) {
                         // If we still couldn't determine the shape, skip
+                        itemIdx++;
                         continue;
-                    }
-                    
-                    if (isTestChunk) {
-                        NSLog(@"  StaticItem: shapeID=%ld, frame=%d, isMountain=%d",
-                              shapeID, frameIndex, [self isMountainShape:shapeID]);
                     }
                     
                     if ([self isMountainShape:shapeID]) {
@@ -564,6 +573,8 @@
                         }
                         break;
                     }
+                    
+                    itemIdx++;
                 }
             }
             

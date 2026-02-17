@@ -631,6 +631,21 @@
                 NSLog(@"  Base terrain shapes in chunk (%d,%d): %@", chunkX, chunkY, sortedShapes);
             }
             
+            // ALSO check if base terrain contains mountain shapes
+            // (Mountains can be in staticItems OR base terrain tiles in transition chunks)
+            if (!hasMountainShapes) {
+                for (NSNumber *shapeKey in shapeIDCounts) {
+                    long shapeID = [shapeKey longValue];
+                    if ([self isMountainShape:shapeID]) {
+                        hasMountainShapes = YES;
+                        if (isTestChunk) {
+                            NSLog(@"  -> FOUND MOUNTAIN SHAPE %ld in BASE TERRAIN!", shapeID);
+                        }
+                        break;
+                    }
+                }
+            }
+            
             if (hasMountainShapes) {
                 // If chunk has mountain shapes, it's a mountain chunk
                 dominantTerrain = TerrainTypeMountain;

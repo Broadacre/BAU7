@@ -623,11 +623,13 @@
             int terrainTilesCount = 0;
             NSMutableDictionary *shapeIDCounts = [NSMutableDictionary dictionary];
             NSMutableSet *uniqueBaseShapes = isTestChunk ? [NSMutableSet set] : nil;
+            NSMutableDictionary *shapeFrameSamples = isTestChunk ? [NSMutableDictionary new] : nil; // Track shape+frame combos
             
             // Scan base terrain first (needed for both mountain and non-mountain chunks)
             for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
                 U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
                 long shapeID = chunkIdx->shapeIndex;
+                int frameID = chunkIdx->frameIndex;
                 
                 if (![self isBuildingShape:shapeID]) {
                     terrainTilesCount++;
@@ -635,6 +637,10 @@
                     shapeIDCounts[key] = @([shapeIDCounts[key] intValue] + 1);
                     if (isTestChunk) {
                         [uniqueBaseShapes addObject:@(shapeID)];
+                        // Track first frame seen for each shape
+                        if (!shapeFrameSamples[key]) {
+                            shapeFrameSamples[key] = @(frameID);
+                        }
                     }
                 }
             }
@@ -642,6 +648,13 @@
             if (isTestChunk && uniqueBaseShapes) {
                 NSArray *sortedShapes = [[uniqueBaseShapes allObjects] sortedArrayUsingSelector:@selector(compare:)];
                 NSLog(@"  Base terrain shapes in chunk (%d,%d): %@", chunkX, chunkY, sortedShapes);
+                // Log shape+frame samples for unusual shapes
+                for (NSNumber *shapeKey in sortedShapes) {
+                    long sid = [shapeKey longValue];
+                    if (sid > 500) { // Only log high shape IDs (unusual ones)
+                        NSLog(@"    Shape %ld sample frame: %@", sid, shapeFrameSamples[shapeKey]);
+                    }
+                }
             }
             
             // ALSO check if base terrain contains mountain shapes

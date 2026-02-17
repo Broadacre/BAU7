@@ -185,6 +185,10 @@
     NSLog(@"  Chunk (129,54): terrainGrid value = %d (desert→grass)", terrainGrid[54 * 192 + 129]);
     NSLog(@"  Chunk (128,56): terrainGrid value = %d (grass→mountain)", terrainGrid[56 * 192 + 128]);
     NSLog(@"  Chunk (124,49): terrainGrid value = %d (swamp→grass)", terrainGrid[49 * 192 + 124]);
+    NSLog(@"STILL SHOWING GREEN:");
+    NSLog(@"  Chunk (19,68): terrainGrid value = %d", terrainGrid[68 * 192 + 19]);
+    NSLog(@"  Chunk (17,67): terrainGrid value = %d", terrainGrid[67 * 192 + 17]);
+    NSLog(@"  Chunk (10,82): terrainGrid value = %d", terrainGrid[82 * 192 + 10]);
     
     // Create building density grid
     int gridSize = mapSize;

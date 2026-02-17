@@ -508,7 +508,7 @@
                               (chunkX == 21 && chunkY == 98) || (chunkX == 20 && chunkY == 99) ||
                               (chunkX == 80 && chunkY == 65) ||  // Swamp example
                               (chunkX == 139 && chunkY == 64) || (chunkX == 136 && chunkY == 66) || // Desert examples
-                              // Transition chunks
+                              // Transition chunks (original batch)
                               (chunkX == 41 && chunkY == 66) ||  // water→mountain
                               (chunkX == 39 && chunkY == 67) ||  // water→grass
                               (chunkX == 14 && chunkY == 87) ||  // water→barren
@@ -516,7 +516,11 @@
                               (chunkX == 129 && chunkY == 79) || // water→desert
                               (chunkX == 129 && chunkY == 54) || // desert→grass
                               (chunkX == 128 && chunkY == 56) || // grass→mountain
-                              (chunkX == 124 && chunkY == 49);   // swamp→grass
+                              (chunkX == 124 && chunkY == 49) || // swamp→grass
+                              // Still showing green (new batch)
+                              (chunkX == 19 && chunkY == 68) ||
+                              (chunkX == 17 && chunkY == 67) ||
+                              (chunkX == 10 && chunkY == 82);
             if (isTestChunk) {
                 NSLog(@"DIAGNOSTIC: Checking chunk (%d,%d) for terrain shapes", chunkX, chunkY);
                 NSLog(@"  Base terrain tiles: %lu", (unsigned long)[chunk->chunkMap count]);

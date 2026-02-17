@@ -254,6 +254,12 @@
                 case 6: // Desert - sandy yellow
                     color = [UIColor colorWithRed:0.85 green:0.75 blue:0.50 alpha:1.0];
                     break;
+                case 7: // Barren - tan/light brown
+                    color = [UIColor colorWithRed:0.70 green:0.60 blue:0.45 alpha:1.0];
+                    if ((x == 21 && y == 98) || (x == 20 && y == 99)) {
+                        NSLog(@"  -> Assigned BARREN color (tan) RGB=(0.70, 0.60, 0.45)");
+                    }
+                    break;
                 default: // Other - dark gray
                     color = [UIColor colorWithRed:0.25 green:0.25 blue:0.25 alpha:1.0];
                     break;

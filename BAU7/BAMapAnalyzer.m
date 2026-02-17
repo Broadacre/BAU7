@@ -671,9 +671,9 @@
     }
     
     NSLog(@"Terrain analysis complete: analyzed %d chunks", totalChunks);
-    NSLog(@"Terrain breakdown: water=%@ grass=%@ mountains=%@ forest=%@ swamp=%@ desert=%@ other=%@",
+    NSLog(@"Terrain breakdown: water=%@ grass=%@ mountains=%@ forest=%@ swamp=%@ desert=%@ barren=%@ other=%@",
           counts[@"water"], counts[@"grass"], counts[@"mountains"], counts[@"forest"], 
-          counts[@"swamp"], counts[@"desert"], counts[@"other"]);
+          counts[@"swamp"], counts[@"desert"], counts[@"barren"], counts[@"other"]);
     
     // Sample a few mountain chunks to verify they're stored correctly
     int mountainSamples = 0;
@@ -696,6 +696,7 @@ enum {
     TerrainTypeForest = 4,
     TerrainTypeSwamp = 5,
     TerrainTypeDesert = 6,
+    TerrainTypeBarren = 7,
     TerrainTypeOther = 0
 };
 
@@ -705,6 +706,7 @@ enum {
     // CONFIRMED WATER: Shape 19 (31.6%), Shape 30 (2.1%)
     // CONFIRMED TREES: Shapes 147-149 (~13%)
     // CONFIRMED MOUNTAINS: 180, 182, 183, 195, 324, 395, 396, 969, 983 (from Buck's U7 inspection)
+    // CONFIRMED BARREN: Shapes 5, 49-57, 61, 185 (from chunks 21,98 and 20,99)
     // LIKELY GRASS: Shape 8 (9.8%), 10, 12, 17, 20, 21, 26 (not in water corners)
     
     // MOUNTAINS - Actual mountain shape IDs from Ultima VII
@@ -719,13 +721,21 @@ enum {
         return TerrainTypeMountain;
     }
     
+    // BARREN - Rocky/barren ground (before water check, as some overlap)
+    if (shapeID == 5 || (shapeID >= 49 && shapeID <= 57) || shapeID == 61 || shapeID == 185) {
+        return TerrainTypeBarren;
+    }
+    
     // WATER - Shapes seen in all four corner chunks
     if (shapeID == 19 || shapeID == 30) {
         return TerrainTypeWater;
     }
     
-    // Also check nearby water shapes (coastline/shallow water)
-    if (shapeID >= 31 && shapeID <= 70) {
+    // Also check nearby water shapes (coastline/shallow water, but NOT barren range)
+    if (shapeID >= 31 && shapeID <= 48) {  // Reduced from 31-70 to exclude barren
+        return TerrainTypeWater;
+    }
+    if (shapeID >= 58 && shapeID <= 70) {  // Water shapes above barren range
         return TerrainTypeWater;
     }
     
@@ -761,6 +771,7 @@ enum {
         case TerrainTypeForest: return @"forest";
         case TerrainTypeSwamp: return @"swamp";
         case TerrainTypeDesert: return @"desert";
+        case TerrainTypeBarren: return @"barren";
         default: return @"other";
     }
 }

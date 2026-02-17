@@ -362,8 +362,13 @@
             counts[terrainName] = @([counts[terrainName] intValue] + 1);
             totalChunks++;
             
-            // Sample first 10 chunks for diagnostic logging
-            if (sampleCount < 10 && maxCount > 0) {
+            // Log corner chunks (should all be water) and first few for diagnostic
+            BOOL isCorner = (chunkX == 0 && chunkY == 0) || 
+                           (chunkX == 0 && chunkY == 191) ||
+                           (chunkX == 191 && chunkY == 0) ||
+                           (chunkX == 191 && chunkY == 191);
+            
+            if ((sampleCount < 10 || isCorner) && maxCount > 0) {
                 // Find most common shape ID in this chunk
                 NSNumber *topShape = nil;
                 int topCount = 0;
@@ -374,9 +379,11 @@
                     }
                 }
                 
-                NSLog(@"Sample chunk (%d,%d): dominant terrain=%@ (type %d), top shape=%@ (%d/%d tiles)", 
+                NSLog(@"%@chunk (%d,%d): dominant terrain=%@ (type %d), top shape=%@ (%d/%d tiles)", 
+                      isCorner ? @"CORNER " : @"Sample ", 
                       chunkX, chunkY, terrainName, dominantTerrain, topShape, topCount, maxCount);
-                sampleCount++;
+                
+                if (!isCorner) sampleCount++;
             }
         }
     }

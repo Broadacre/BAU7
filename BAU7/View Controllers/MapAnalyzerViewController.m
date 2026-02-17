@@ -168,6 +168,14 @@
     NSData *terrainGridData = patterns[@"terrainGrid"];
     const int *terrainGrid = (const int *)[terrainGridData bytes];
     
+    // DIAGNOSTIC: Check the same mountain chunks we logged during analysis
+    NSLog(@"HEATMAP DIAGNOSTIC: Checking mountain chunks from analysis:");
+    NSLog(@"  Chunk (28,4): terrainGrid value = %d (should be 3)", terrainGrid[4 * 192 + 28]);
+    NSLog(@"  Chunk (29,5): terrainGrid value = %d (should be 3)", terrainGrid[5 * 192 + 29]);
+    NSLog(@"  Chunk (28,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 28]);
+    NSLog(@"  Chunk (29,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 29]);
+    NSLog(@"  Chunk (39,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 39]);
+    
     // Create building density grid
     int gridSize = mapSize;
     int *densityGrid = calloc(gridSize * gridSize, sizeof(int));

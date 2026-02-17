@@ -8,6 +8,13 @@
 #import "Includes.h"
 #import "BAMapAnalyzer.h"
 
+@protocol U7StaticItemLike <NSObject>
+@optional
+- (long)shapeIndex;
+- (int)frameIndex;
+- (id)shape; // object that may respond to -index
+@end
+
 @implementation BAMapAnalyzer
 {
     U7Map *_map;
@@ -289,7 +296,7 @@
     // If >30% of surrounding chunks are mountains, it's a dungeon
     // If >40% are grass, it's a city
     
-    float mountainPercent = (float)mountainCount / totalSampled * 100.0;
+    mountainPercent = (float)mountainCount / totalSampled * 100.0;
     float grassPercent = (float)grassCount / totalSampled * 100.0;
     float waterPercent = (float)waterCount / totalSampled * 100.0;
     float forestPercent = (float)forestCount / totalSampled * 100.0;
@@ -463,7 +470,6 @@
     NSLog(@"Analyzing terrain distribution...");
     
     NSMutableDictionary *counts = [NSMutableDictionary dictionary];
-    NSMutableDictionary *shapeIDSamples = [NSMutableDictionary dictionary]; // Track shape IDs per terrain
     int totalChunks = 0;
     int sampleCount = 0;
     
@@ -477,6 +483,8 @@
             
             U7Chunk *chunk = mapChunk->masterChunk;
             if (!chunk || !chunk->chunkMap) continue;
+            
+            int maxCount = (int)[chunk->chunkMap count];
             
             // DIAGNOSTIC for chunk (53,60)
             BOOL isTestChunk = (chunkX == 53 && chunkY == 60);
@@ -492,12 +500,61 @@
             
             // Check staticItems (where mountains actually are!)
             if (mapChunk->staticItems) {
-                for (U7ShapeReference *item in mapChunk->staticItems) {
-                    long shapeID = item->shapeIndex;
+                for (id item in mapChunk->staticItems) {
+                    long shapeID = -1;
+                    int frameIndex = -1;
+
+                    id<U7StaticItemLike> typedItem = (id<U7StaticItemLike>)item;
+
+                    // Prefer direct method access if available
+                    if ([typedItem respondsToSelector:@selector(shapeIndex)]) {
+                        #pragma clang diagnostic push
+                        #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                        shapeID = ((long)[(id)typedItem performSelector:@selector(shapeIndex)]);
+                        #pragma clang diagnostic pop
+                    } else if ([typedItem respondsToSelector:@selector(shape)]) {
+                        id shapeObj = [typedItem shape];
+                        if ([shapeObj respondsToSelector:@selector(index)]) {
+                            #pragma clang diagnostic push
+                            #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                            shapeID = ((long)[shapeObj performSelector:@selector(index)]);
+                            #pragma clang diagnostic pop
+                        }
+                    } else {
+                        // Fallback to KVC if available
+                        @try {
+                            NSNumber *num = [item valueForKey:@"shapeIndex"];
+                            if ([num isKindOfClass:[NSNumber class]]) {
+                                shapeID = [num longValue];
+                            }
+                        } @catch (__unused NSException *e) {}
+                    }
+
+                    if ([typedItem respondsToSelector:@selector(frameIndex)]) {
+                        #pragma clang diagnostic push
+                        #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                        id ret = [(id)typedItem performSelector:@selector(frameIndex)];
+                        #pragma clang diagnostic pop
+                        if ([ret isKindOfClass:[NSNumber class]]) {
+                            frameIndex = [(NSNumber *)ret intValue];
+                        }
+                    } else {
+                        @try {
+                            NSNumber *num = [item valueForKey:@"frameIndex"];
+                            if ([num isKindOfClass:[NSNumber class]]) {
+                                frameIndex = [num intValue];
+                            }
+                        } @catch (__unused NSException *e) {}
+                    }
+
+                    if (shapeID == -1) {
+                        // If we still couldn't determine the shape, skip
+                        continue;
+                    }
                     
                     if (isTestChunk) {
-                        NSLog(@"  StaticItem: shapeID=%ld, frame=%d, isMountain=%d", 
-                              shapeID, item->frameIndex, [self isMountainShape:shapeID]);
+                        NSLog(@"  StaticItem: shapeID=%ld, frame=%d, isMountain=%d",
+                              shapeID, frameIndex, [self isMountainShape:shapeID]);
                     }
                     
                     if ([self isMountainShape:shapeID]) {
@@ -579,9 +636,6 @@
                            (chunkX == 0 && chunkY == 191) ||
                            (chunkX == 191 && chunkY == 0) ||
                            (chunkX == 191 && chunkY == 191);
-            
-            // ALSO log the user's test chunk
-            BOOL isTestChunk = (chunkX == 53 && chunkY == 60);
             
             if ((sampleCount < 10 || isCorner || isTestChunk) && terrainTilesCount > 0) {
                 // Find most common shape ID in this chunk
@@ -775,3 +829,7 @@ enum {
 }
 
 @end
+
+
+
+

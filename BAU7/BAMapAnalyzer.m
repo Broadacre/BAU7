@@ -506,7 +506,20 @@ enum {
     // Based on ACTUAL corner chunk analysis (all corners are water):
     // CONFIRMED WATER: Shape 19 (31.6%), Shape 30 (2.1%)
     // CONFIRMED TREES: Shapes 147-149 (~13%)
+    // CONFIRMED MOUNTAINS: 180, 182, 183, 195, 324, 395, 396, 969, 983 (from Buck's U7 inspection)
     // LIKELY GRASS: Shape 8 (9.8%), 10, 12, 17, 20, 21, 26 (not in water corners)
+    
+    // MOUNTAINS - Actual mountain shape IDs from Ultima VII
+    if (shapeID == 180 || shapeID == 182 || shapeID == 183 || shapeID == 195 ||
+        shapeID == 324 || shapeID == 395 || shapeID == 396 || 
+        shapeID == 969 || shapeID == 983) {
+        return TerrainTypeMountain;
+    }
+    
+    // Also check nearby mountain shapes (likely rocks, cliffs)
+    if (shapeID >= 130 && shapeID <= 146) {
+        return TerrainTypeMountain;
+    }
     
     // WATER - Shapes seen in all four corner chunks
     if (shapeID == 19 || shapeID == 30) {
@@ -521,11 +534,6 @@ enum {
     // Trees/forest (147-149 confirmed from distribution)
     if (shapeID >= 147 && shapeID <= 149) {
         return TerrainTypeForest;
-    }
-    
-    // Mountains/rocks (130-146 range, just before trees)
-    if (shapeID >= 130 && shapeID <= 146) {
-        return TerrainTypeMountain;
     }
     
     // Grass (shapes 8, 10, 12, 17, 20, 21, 26 - but NOT 19 or 30 which are water!)

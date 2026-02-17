@@ -41,16 +41,16 @@
     // Phase 0: Sample shapes to find what IDs are actually used
     [self sampleShapeDistribution];
     
-    // Phase 1: Find individual building structures
-    NSArray *buildings = [self scanForBuildings];
-    
-    // Phase 2: Group nearby buildings into cities
-    [self groupBuildingsIntoCities:buildings];
-    
-    // Phase 3: Count terrain types
+    // Phase 1: Analyze terrain FIRST (needed for city vs dungeon detection)
     [self analyzeTerrainDistribution];
     
-    // Phase 4: (Future) Detect roads, dungeons, etc.
+    // Phase 2: Find individual building structures
+    NSArray *buildings = [self scanForBuildings];
+    
+    // Phase 3: Group nearby buildings into cities (filtering out dungeons)
+    [self groupBuildingsIntoCities:buildings];
+    
+    // Phase 4: (Future) Detect roads, etc.
     
     NSLog(@"Analysis complete! Found %lu cities", (unsigned long)[_cities count]);
 }
@@ -156,6 +156,7 @@
     
     NSMutableArray *remainingBuildings = [buildings mutableCopy];
     int cityRadius = 150; // Buildings within 150 tiles are part of the same city
+    int dungeonCount = 0; // Track how many clusters we reject as dungeons
     
     while ([remainingBuildings count] > 0) {
         NSDictionary *seed = remainingBuildings[0];
@@ -184,9 +185,9 @@
         
         [remainingBuildings removeObjectsInArray:toRemove];
         
-        // If we have 10+ buildings, it's a city
+        // If we have 10+ buildings, check if it's a city or dungeon
         if ([cityBuildings count] >= 10) {
-            // Calculate city bounds
+            // Calculate cluster bounds
             int minX = 9999, maxX = 0, minY = 9999, maxY = 0;
             int totalTiles = 0;
             
@@ -204,23 +205,85 @@
                 totalTiles += tiles;
             }
             
-            NSDictionary *city = @{
-                @"x": @(minX),
-                @"y": @(minY),
-                @"width": @(maxX - minX),
-                @"height": @(maxY - minY),
-                @"buildingCount": @([cityBuildings count]),
-                @"tileCount": @(totalTiles)
-            };
+            // Check surrounding terrain to distinguish city from dungeon
+            BOOL isCity = [self isClusterACityAtX:minX y:minY width:(maxX - minX) height:(maxY - minY)];
             
-            NSLog(@"Found city: %lu buildings, %d tiles at (%d, %d)", 
-                  (unsigned long)[cityBuildings count], totalTiles, minX, minY);
-            
-            [_cities addObject:city];
+            if (isCity) {
+                NSDictionary *city = @{
+                    @"x": @(minX),
+                    @"y": @(minY),
+                    @"width": @(maxX - minX),
+                    @"height": @(maxY - minY),
+                    @"buildingCount": @([cityBuildings count]),
+                    @"tileCount": @(totalTiles)
+                };
+                
+                NSLog(@"Found CITY: %lu buildings, %d tiles at (%d, %d)", 
+                      (unsigned long)[cityBuildings count], totalTiles, minX, minY);
+                
+                [_cities addObject:city];
+            } else {
+                dungeonCount++;
+                NSLog(@"Found DUNGEON (rejected): %lu buildings, %d tiles at (%d, %d)", 
+                      (unsigned long)[cityBuildings count], totalTiles, minX, minY);
+            }
         }
     }
     
-    NSLog(@"City detection complete: Found %lu cities", (unsigned long)[_cities count]);
+    NSLog(@"City detection complete: Found %lu cities, %d dungeons", (unsigned long)[_cities count], dungeonCount);
+}
+
+- (BOOL)isClusterACityAtX:(int)worldX y:(int)worldY width:(int)width height:(int)height
+{
+    // Check the terrain SURROUNDING this cluster (not under it)
+    // Sample chunks in a ring around the cluster bounds
+    
+    int minChunkX = MAX(0, worldX / 16 - 5);      // 5 chunks left
+    int maxChunkX = MIN(191, (worldX + width) / 16 + 5);  // 5 chunks right
+    int minChunkY = MAX(0, worldY / 16 - 5);      // 5 chunks above
+    int maxChunkY = MIN(191, (worldY + height) / 16 + 5); // 5 chunks below
+    
+    int grassCount = 0;
+    int mountainCount = 0;
+    int waterCount = 0;
+    int totalSampled = 0;
+    
+    for (int cy = minChunkY; cy <= maxChunkY; cy++) {
+        for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+            int terrainType = _terrainGrid[cy * 192 + cx];
+            totalSampled++;
+            
+            switch (terrainType) {
+                case TerrainTypeGrass:
+                    grassCount++;
+                    break;
+                case TerrainTypeMountain:
+                    mountainCount++;
+                    break;
+                case TerrainTypeWater:
+                    waterCount++;
+                    break;
+            }
+        }
+    }
+    
+    // Cities are on grass/flat land; dungeons are on/in mountains
+    // If >40% of surrounding chunks are mountains, it's a dungeon
+    // If >30% are grass, it's a city
+    
+    float mountainPercent = (float)mountainCount / totalSampled;
+    float grassPercent = (float)grassCount / totalSampled;
+    
+    if (mountainPercent > 0.4) {
+        return NO; // Dungeon
+    }
+    
+    if (grassPercent > 0.3) {
+        return YES; // City
+    }
+    
+    // Ambiguous - default to city if not clearly on mountains
+    return (mountainPercent < grassPercent);
 }
 
 - (NSDictionary *)floodFillBuildingsFromX:(int)startX y:(int)startY
@@ -328,23 +391,31 @@
             if (!chunk || !chunk->chunkMap) continue;
             
             // Count terrain types across ALL tiles in this chunk
+            // BUT skip building shapes - we want the UNDERLYING terrain
             int terrainTypeCounts[7] = {0}; // Array for each terrain type (0-6)
             int maxCount = [chunk->chunkMap count];
             NSMutableDictionary *shapeIDCounts = [NSMutableDictionary dictionary];
+            int terrainTilesCount = 0; // Count of non-building tiles
             
             for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
                 U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
                 long shapeID = chunkIdx->shapeIndex;
                 
+                // SKIP BUILDING SHAPES - we only want underlying terrain
+                if ([self isBuildingShape:shapeID]) {
+                    continue;
+                }
+                
                 int terrainType = [self terrainTypeForShapeID:shapeID];
                 terrainTypeCounts[terrainType]++;
+                terrainTilesCount++;
                 
                 // Track shape IDs for diagnostic
                 NSNumber *key = @(shapeID);
                 shapeIDCounts[key] = @([shapeIDCounts[key] intValue] + 1);
             }
             
-            // Find the most common terrain type in this chunk
+            // Find the most common terrain type in this chunk (among non-building tiles)
             int dominantTerrain = TerrainTypeOther;
             int maxTerrainCount = 0;
             
@@ -368,7 +439,7 @@
                            (chunkX == 191 && chunkY == 0) ||
                            (chunkX == 191 && chunkY == 191);
             
-            if ((sampleCount < 10 || isCorner) && maxCount > 0) {
+            if ((sampleCount < 10 || isCorner) && terrainTilesCount > 0) {
                 // Find most common shape ID in this chunk
                 NSNumber *topShape = nil;
                 int topCount = 0;
@@ -379,9 +450,9 @@
                     }
                 }
                 
-                NSLog(@"%@chunk (%d,%d): dominant terrain=%@ (type %d), top shape=%@ (%d/%d tiles)", 
+                NSLog(@"%@chunk (%d,%d): dominant terrain=%@ (type %d), top shape=%@ (%d/%d terrain tiles, %d total)", 
                       isCorner ? @"CORNER " : @"Sample ", 
-                      chunkX, chunkY, terrainName, dominantTerrain, topShape, topCount, maxCount);
+                      chunkX, chunkY, terrainName, dominantTerrain, topShape, topCount, terrainTilesCount, maxCount);
                 
                 if (!isCorner) sampleCount++;
             }

@@ -235,13 +235,13 @@
 
 - (BOOL)isClusterACityAtX:(int)worldX y:(int)worldY width:(int)width height:(int)height
 {
-    // FIRST: Check if the cluster CONTAINS mountain shapes
-    // If it does, it's a dungeon (mountains placed on top of dungeon base)
-    BOOL containsMountains = [self clusterContainsMountainsAtX:worldX y:worldY width:width height:height];
+    // FIRST: Check if the cluster has SIGNIFICANT mountain coverage
+    // Dungeons have mountains as primary feature (>30%), cities might have decorative mountains
+    float mountainPercent = [self mountainPercentInClusterAtX:worldX y:worldY width:width height:height];
     
-    if (containsMountains) {
-        NSLog(@"  Cluster at (%d,%d): DUNGEON - contains mountain shapes (dungeon entrance)",
-              worldX, worldY);
+    if (mountainPercent > 30.0) {
+        NSLog(@"  Cluster at (%d,%d): DUNGEON - %.1f%% mountain shapes (dungeon entrance)",
+              worldX, worldY, mountainPercent);
         return NO;
     }
     
@@ -318,9 +318,12 @@
     return isCity;
 }
 
-- (BOOL)clusterContainsMountainsAtX:(int)worldX y:(int)worldY width:(int)width height:(int)height
+- (float)mountainPercentInClusterAtX:(int)worldX y:(int)worldY width:(int)width height:(int)height
 {
-    // Scan all tiles in the cluster bounds to see if any are mountain shapes
+    // Count mountain shapes vs total tiles in the cluster
+    int mountainCount = 0;
+    int totalTiles = 0;
+    
     for (int y = worldY; y < worldY + height; y++) {
         for (int x = worldX; x < worldX + width; x++) {
             
@@ -347,13 +350,15 @@
             U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
             long shapeID = chunkIdx->shapeIndex;
             
+            totalTiles++;
             if ([self isMountainShape:shapeID]) {
-                return YES; // Found a mountain shape - it's a dungeon
+                mountainCount++;
             }
         }
     }
     
-    return NO;
+    if (totalTiles == 0) return 0.0;
+    return (float)mountainCount / totalTiles * 100.0;
 }
 
 - (NSDictionary *)floodFillBuildingsFromX:(int)startX y:(int)startY
@@ -553,6 +558,18 @@
     NSLog(@"Terrain breakdown: water=%@ grass=%@ mountains=%@ forest=%@ swamp=%@ desert=%@ other=%@",
           counts[@"water"], counts[@"grass"], counts[@"mountains"], counts[@"forest"], 
           counts[@"swamp"], counts[@"desert"], counts[@"other"]);
+    
+    // Sample a few mountain chunks to verify they're stored correctly
+    int mountainSamples = 0;
+    for (int cy = 0; cy < 192 && mountainSamples < 5; cy++) {
+        for (int cx = 0; cx < 192 && mountainSamples < 5; cx++) {
+            int terrainType = _terrainGrid[cy * 192 + cx];
+            if (terrainType == TerrainTypeMountain) {
+                NSLog(@"  Sample mountain chunk (%d,%d): terrain grid value = %d", cx, cy, terrainType);
+                mountainSamples++;
+            }
+        }
+    }
 }
 
 // Terrain types for visualization

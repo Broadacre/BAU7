@@ -488,6 +488,9 @@
     }
     
     NSLog(@"Terrain analysis complete: analyzed %d chunks", totalChunks);
+    NSLog(@"Terrain breakdown: water=%@ grass=%@ mountains=%@ forest=%@ swamp=%@ desert=%@ other=%@",
+          counts[@"water"], counts[@"grass"], counts[@"mountains"], counts[@"forest"], 
+          counts[@"swamp"], counts[@"desert"], counts[@"other"]);
 }
 
 // Terrain types for visualization

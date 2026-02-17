@@ -175,6 +175,7 @@
     NSLog(@"  Chunk (28,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 28]);
     NSLog(@"  Chunk (29,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 29]);
     NSLog(@"  Chunk (39,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 39]);
+    NSLog(@"  Chunk (53,60): terrainGrid value = %d (USER'S TEST CHUNK - should be 3)", terrainGrid[60 * 192 + 53]);
     
     // Create building density grid
     int gridSize = mapSize;
@@ -221,8 +222,8 @@
         for (int x = 0; x < gridSize; x++) {
             int terrainType = terrainGrid[y * gridSize + x];
             
-            // DIAGNOSTIC: Log when rendering our known mountain chunks
-            if ((x == 28 && y == 4) || (x == 29 && y == 5)) {
+            // DIAGNOSTIC: Log when rendering our known mountain chunks + user's test chunk
+            if ((x == 28 && y == 4) || (x == 29 && y == 5) || (x == 53 && y == 60)) {
                 NSLog(@"RENDERING chunk (%d,%d): terrainType=%d", x, y, terrainType);
             }
             
@@ -230,6 +231,9 @@
             switch (terrainType) {
                 case 1: // Water - deep blue
                     color = [UIColor colorWithRed:0.15 green:0.35 blue:0.75 alpha:1.0];
+                    if (x == 53 && y == 60) {
+                        NSLog(@"  -> Assigned WATER color (blue) RGB=(0.15, 0.35, 0.75) - THIS IS WRONG!");
+                    }
                     break;
                 case 2: // Grass - light green
                     color = [UIColor colorWithRed:0.45 green:0.65 blue:0.35 alpha:1.0];
@@ -237,7 +241,7 @@
                 case 3: // Mountains - brown/gray
                     color = [UIColor colorWithRed:0.55 green:0.50 blue:0.45 alpha:1.0];
                     mountainRenders++;
-                    if ((x == 28 && y == 4) || (x == 29 && y == 5)) {
+                    if ((x == 28 && y == 4) || (x == 29 && y == 5) || (x == 53 && y == 60)) {
                         NSLog(@"  -> Assigned MOUNTAIN color (brown/gray) RGB=(0.55, 0.50, 0.45)");
                     }
                     break;

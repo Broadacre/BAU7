@@ -528,7 +528,10 @@
                            (chunkX == 191 && chunkY == 0) ||
                            (chunkX == 191 && chunkY == 191);
             
-            if ((sampleCount < 10 || isCorner) && terrainTilesCount > 0) {
+            // ALSO log the user's test chunk
+            BOOL isTestChunk = (chunkX == 53 && chunkY == 60);
+            
+            if ((sampleCount < 10 || isCorner || isTestChunk) && terrainTilesCount > 0) {
                 // Find most common shape ID in this chunk
                 NSNumber *topShape = nil;
                 int topCount = 0;

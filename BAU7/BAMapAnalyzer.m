@@ -235,6 +235,16 @@
 
 - (BOOL)isClusterACityAtX:(int)worldX y:(int)worldY width:(int)width height:(int)height
 {
+    // FIRST: Check if the cluster CONTAINS mountain shapes
+    // If it does, it's a dungeon (mountains placed on top of dungeon base)
+    BOOL containsMountains = [self clusterContainsMountainsAtX:worldX y:worldY width:width height:height];
+    
+    if (containsMountains) {
+        NSLog(@"  Cluster at (%d,%d): DUNGEON - contains mountain shapes (dungeon entrance)",
+              worldX, worldY);
+        return NO;
+    }
+    
     // Check the terrain SURROUNDING this cluster (not under it)
     // Sample chunks in a ring around the cluster bounds
     
@@ -306,6 +316,44 @@
           (float)otherCount / totalSampled * 100.0);
     
     return isCity;
+}
+
+- (BOOL)clusterContainsMountainsAtX:(int)worldX y:(int)worldY width:(int)width height:(int)height
+{
+    // Scan all tiles in the cluster bounds to see if any are mountain shapes
+    for (int y = worldY; y < worldY + height; y++) {
+        for (int x = worldX; x < worldX + width; x++) {
+            
+            int chunkX = x / 16;
+            int chunkY = y / 16;
+            int tileX = x % 16;
+            int tileY = y % 16;
+            
+            // Bounds check
+            if (chunkX < 0 || chunkX >= 192 || chunkY < 0 || chunkY >= 192) {
+                continue;
+            }
+            
+            long chunkIndex = [_map chunkIDForChunkCoordinate:CGPointMake(chunkX, chunkY)];
+            U7MapChunk *mapChunk = [_map mapChunkAtIndex:chunkIndex];
+            if (!mapChunk) continue;
+            
+            U7Chunk *chunk = mapChunk->masterChunk;
+            if (!chunk || !chunk->chunkMap) continue;
+            
+            int tileIndex = tileY * 16 + tileX;
+            if (tileIndex >= [chunk->chunkMap count]) continue;
+            
+            U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIndex];
+            long shapeID = chunkIdx->shapeIndex;
+            
+            if ([self isMountainShape:shapeID]) {
+                return YES; // Found a mountain shape - it's a dungeon
+            }
+        }
+    }
+    
+    return NO;
 }
 
 - (NSDictionary *)floodFillBuildingsFromX:(int)startX y:(int)startY
@@ -387,9 +435,22 @@
     // Walls (stone, brick, wood): ~400-700
     // Chimneys, signs: scattered ~500-800
     
+    // EXCLUDE mountain shapes - they're terrain, not buildings
+    if ([self isMountainShape:shapeID]) {
+        return NO;
+    }
+    
     // Broader detection for building-related shapes
     return (shapeID >= 270 && shapeID <= 750) ||   // Main building components
            (shapeID >= 800 && shapeID <= 850);     // Some additional structures
+}
+
+- (BOOL)isMountainShape:(long)shapeID
+{
+    // Mountain shapes from U7 inspection
+    return (shapeID == 180 || shapeID == 182 || shapeID == 183 || shapeID == 195 ||
+            shapeID == 324 || shapeID == 395 || shapeID == 396 || 
+            shapeID == 969 || shapeID == 983);
 }
 
 - (void)analyzeTerrainDistribution
@@ -423,7 +484,8 @@
                 U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
                 long shapeID = chunkIdx->shapeIndex;
                 
-                // SKIP BUILDING SHAPES - we only want underlying terrain
+                // SKIP BUILDING SHAPES - we only want terrain
+                // (isBuildingShape now excludes mountains, so they'll be counted)
                 if ([self isBuildingShape:shapeID]) {
                     continue;
                 }

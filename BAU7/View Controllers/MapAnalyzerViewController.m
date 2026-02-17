@@ -216,9 +216,15 @@
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
     // Draw terrain base layer
+    int mountainRenders = 0;
     for (int y = 0; y < gridSize; y++) {
         for (int x = 0; x < gridSize; x++) {
             int terrainType = terrainGrid[y * gridSize + x];
+            
+            // DIAGNOSTIC: Log when rendering our known mountain chunks
+            if ((x == 28 && y == 4) || (x == 29 && y == 5)) {
+                NSLog(@"RENDERING chunk (%d,%d): terrainType=%d", x, y, terrainType);
+            }
             
             UIColor *color;
             switch (terrainType) {
@@ -230,6 +236,10 @@
                     break;
                 case 3: // Mountains - brown/gray
                     color = [UIColor colorWithRed:0.55 green:0.50 blue:0.45 alpha:1.0];
+                    mountainRenders++;
+                    if ((x == 28 && y == 4) || (x == 29 && y == 5)) {
+                        NSLog(@"  -> Assigned MOUNTAIN color (brown/gray) RGB=(0.55, 0.50, 0.45)");
+                    }
                     break;
                 case 4: // Forest - dark green
                     color = [UIColor colorWithRed:0.20 green:0.50 blue:0.25 alpha:1.0];
@@ -249,6 +259,7 @@
             CGContextFillRect(ctx, CGRectMake(x * pixelScale, y * pixelScale, pixelScale, pixelScale));
         }
     }
+    NSLog(@"Total mountain chunks rendered: %d (expected ~3313)", mountainRenders);
     
     // Overlay building density (semi-transparent red)
     for (int y = 0; y < gridSize; y++) {

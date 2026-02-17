@@ -176,6 +176,15 @@
     NSLog(@"  Chunk (29,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 29]);
     NSLog(@"  Chunk (39,6): terrainGrid value = %d (should be 3)", terrainGrid[6 * 192 + 39]);
     NSLog(@"  Chunk (53,60): terrainGrid value = %d (USER'S TEST CHUNK - should be 3)", terrainGrid[60 * 192 + 53]);
+    NSLog(@"TRANSITION CHUNKS:");
+    NSLog(@"  Chunk (41,66): terrainGrid value = %d (water→mountain)", terrainGrid[66 * 192 + 41]);
+    NSLog(@"  Chunk (39,67): terrainGrid value = %d (water→grass)", terrainGrid[67 * 192 + 39]);
+    NSLog(@"  Chunk (14,87): terrainGrid value = %d (water→barren)", terrainGrid[87 * 192 + 14]);
+    NSLog(@"  Chunk (78,89): terrainGrid value = %d (water→grass)", terrainGrid[89 * 192 + 78]);
+    NSLog(@"  Chunk (129,79): terrainGrid value = %d (water→desert)", terrainGrid[79 * 192 + 129]);
+    NSLog(@"  Chunk (129,54): terrainGrid value = %d (desert→grass)", terrainGrid[54 * 192 + 129]);
+    NSLog(@"  Chunk (128,56): terrainGrid value = %d (grass→mountain)", terrainGrid[56 * 192 + 128]);
+    NSLog(@"  Chunk (124,49): terrainGrid value = %d (swamp→grass)", terrainGrid[49 * 192 + 124]);
     
     // Create building density grid
     int gridSize = mapSize;

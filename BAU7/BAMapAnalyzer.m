@@ -498,7 +498,16 @@
             BOOL isTestChunk = (chunkX == 53 && chunkY == 60) || 
                               (chunkX == 21 && chunkY == 98) || (chunkX == 20 && chunkY == 99) ||
                               (chunkX == 80 && chunkY == 65) ||  // Swamp example
-                              (chunkX == 139 && chunkY == 64) || (chunkX == 136 && chunkY == 66); // Desert examples
+                              (chunkX == 139 && chunkY == 64) || (chunkX == 136 && chunkY == 66) || // Desert examples
+                              // Transition chunks
+                              (chunkX == 41 && chunkY == 66) ||  // water→mountain
+                              (chunkX == 39 && chunkY == 67) ||  // water→grass
+                              (chunkX == 14 && chunkY == 87) ||  // water→barren
+                              (chunkX == 78 && chunkY == 89) ||  // water→grass
+                              (chunkX == 129 && chunkY == 79) || // water→desert
+                              (chunkX == 129 && chunkY == 54) || // desert→grass
+                              (chunkX == 128 && chunkY == 56) || // grass→mountain
+                              (chunkX == 124 && chunkY == 49);   // swamp→grass
             if (isTestChunk) {
                 NSLog(@"DIAGNOSTIC: Checking chunk (%d,%d) for terrain shapes", chunkX, chunkY);
                 NSLog(@"  Base terrain tiles: %lu", (unsigned long)[chunk->chunkMap count]);
@@ -670,6 +679,11 @@
             NSString *terrainName = [self terrainNameForType:dominantTerrain];
             counts[terrainName] = @([counts[terrainName] intValue] + 1);
             totalChunks++;
+            
+            // Log classification result for test chunks
+            if (isTestChunk) {
+                NSLog(@"  CLASSIFIED AS: %@ (type %d)", terrainName, dominantTerrain);
+            }
             
             // Log corner chunks (should all be water) and first few for diagnostic
             BOOL isCorner = (chunkX == 0 && chunkY == 0) || 

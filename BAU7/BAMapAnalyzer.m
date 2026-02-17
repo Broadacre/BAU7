@@ -489,7 +489,10 @@
             int maxCount = (int)[chunk->chunkMap count];
             
             // DIAGNOSTIC for test chunks
-            BOOL isTestChunk = (chunkX == 53 && chunkY == 60) || (chunkX == 21 && chunkY == 98) || (chunkX == 20 && chunkY == 99);
+            BOOL isTestChunk = (chunkX == 53 && chunkY == 60) || 
+                              (chunkX == 21 && chunkY == 98) || (chunkX == 20 && chunkY == 99) ||
+                              (chunkX == 80 && chunkY == 65) ||  // Swamp example
+                              (chunkX == 139 && chunkY == 64) || (chunkX == 136 && chunkY == 66); // Desert examples
             if (isTestChunk) {
                 NSLog(@"DIAGNOSTIC: Checking chunk (%d,%d) for terrain shapes", chunkX, chunkY);
                 NSLog(@"  Base terrain tiles: %lu", (unsigned long)[chunk->chunkMap count]);

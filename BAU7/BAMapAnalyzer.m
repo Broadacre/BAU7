@@ -612,7 +612,7 @@
                 dominantTerrain = TerrainTypeMountain;
             } else {
                 // No mountain shapes - determine terrain from base tiles
-                int terrainTypeCounts[7] = {0}; // Array for each terrain type (0-6)
+                int terrainTypeCounts[8] = {0}; // Array for each terrain type (0-7, includes barren)
                 
                 // Count terrain types (already scanned shapes above)
                 for (NSNumber *shapeKey in shapeIDCounts) {
@@ -752,13 +752,16 @@ enum {
         return TerrainTypeGrass;
     }
     
-    // Swamp (71-100 range)
-    if (shapeID >= 71 && shapeID <= 100) {
+    // Swamp (shapes 113-117 confirmed from chunk 80,65)
+    if (shapeID >= 113 && shapeID <= 120) {
         return TerrainTypeSwamp;
     }
     
-    // Desert (101-129 range)
-    if (shapeID >= 101 && shapeID <= 129) {
+    // Desert (101-112 range, excluding swamp 113-120)
+    if (shapeID >= 101 && shapeID <= 112) {
+        return TerrainTypeDesert;
+    }
+    if (shapeID >= 121 && shapeID <= 129) {
         return TerrainTypeDesert;
     }
     

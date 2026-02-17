@@ -10,9 +10,11 @@
 
 @protocol U7StaticItemLike <NSObject>
 @optional
-- (long)shapeIndex;
-- (int)frameIndex;
-- (id)shape; // object that may respond to -index
+- (long)shapeID;       // Actual property name in U7ShapeReference
+- (int)frameNumber;    // Actual property name in U7ShapeReference
+- (long)shapeIndex;    // Fallback for other types
+- (int)frameIndex;     // Fallback for other types
+- (id)shape;           // object that may respond to -index
 @end
 
 @implementation BAMapAnalyzer
@@ -509,48 +511,42 @@
                     long shapeID = -1;
                     int frameIndex = -1;
 
-                    id<U7StaticItemLike> typedItem = (id<U7StaticItemLike>)item;
-
-                    // Prefer direct method access if available
-                    if ([typedItem respondsToSelector:@selector(shapeIndex)]) {
-                        #pragma clang diagnostic push
-                        #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                        shapeID = ((long)[(id)typedItem performSelector:@selector(shapeIndex)]);
-                        #pragma clang diagnostic pop
-                    } else if ([typedItem respondsToSelector:@selector(shape)]) {
-                        id shapeObj = [typedItem shape];
-                        if (isTestChunk) {
-                            NSLog(@"    -> Has 'shape' property: class=%@", NSStringFromClass([shapeObj class]));
-                        }
-                        if ([shapeObj respondsToSelector:@selector(index)]) {
-                            #pragma clang diagnostic push
-                            #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                            shapeID = ((long)[shapeObj performSelector:@selector(index)]);
-                            #pragma clang diagnostic pop
-                        }
+                    // U7ShapeReference uses shapeID and frameNumber (not shapeIndex/frameIndex!)
+                    // Try shapeID first (correct property name)
+                    if ([item respondsToSelector:@selector(shapeID)]) {
+                        shapeID = [item shapeID];
+                    } else if ([item respondsToSelector:@selector(shapeIndex)]) {
+                        shapeID = [item shapeIndex];
                     } else {
-                        // Fallback to KVC if available
+                        // Fallback to KVC
                         @try {
-                            NSNumber *num = [item valueForKey:@"shapeIndex"];
+                            NSNumber *num = [item valueForKey:@"shapeID"];
                             if ([num isKindOfClass:[NSNumber class]]) {
                                 shapeID = [num longValue];
+                            } else {
+                                num = [item valueForKey:@"shapeIndex"];
+                                if ([num isKindOfClass:[NSNumber class]]) {
+                                    shapeID = [num longValue];
+                                }
                             }
                         } @catch (__unused NSException *e) {}
                     }
 
-                    if ([typedItem respondsToSelector:@selector(frameIndex)]) {
-                        #pragma clang diagnostic push
-                        #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                        id ret = [(id)typedItem performSelector:@selector(frameIndex)];
-                        #pragma clang diagnostic pop
-                        if ([ret isKindOfClass:[NSNumber class]]) {
-                            frameIndex = [(NSNumber *)ret intValue];
-                        }
+                    // Try frameNumber first (correct property name)
+                    if ([item respondsToSelector:@selector(frameNumber)]) {
+                        frameIndex = [item frameNumber];
+                    } else if ([item respondsToSelector:@selector(frameIndex)]) {
+                        frameIndex = [item frameIndex];
                     } else {
                         @try {
-                            NSNumber *num = [item valueForKey:@"frameIndex"];
+                            NSNumber *num = [item valueForKey:@"frameNumber"];
                             if ([num isKindOfClass:[NSNumber class]]) {
                                 frameIndex = [num intValue];
+                            } else {
+                                num = [item valueForKey:@"frameIndex"];
+                                if ([num isKindOfClass:[NSNumber class]]) {
+                                    frameIndex = [num intValue];
+                                }
                             }
                         } @catch (__unused NSException *e) {}
                     }

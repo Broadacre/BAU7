@@ -488,10 +488,10 @@
             
             int maxCount = (int)[chunk->chunkMap count];
             
-            // DIAGNOSTIC for chunk (53,60)
-            BOOL isTestChunk = (chunkX == 53 && chunkY == 60);
+            // DIAGNOSTIC for test chunks
+            BOOL isTestChunk = (chunkX == 53 && chunkY == 60) || (chunkX == 21 && chunkY == 98) || (chunkX == 20 && chunkY == 99);
             if (isTestChunk) {
-                NSLog(@"DIAGNOSTIC: Checking chunk (53,60) for mountain shapes");
+                NSLog(@"DIAGNOSTIC: Checking chunk (%d,%d) for terrain shapes", chunkX, chunkY);
                 NSLog(@"  Base terrain tiles: %lu", (unsigned long)[chunk->chunkMap count]);
                 NSLog(@"  Static items: %lu", (unsigned long)[mapChunk->staticItems count]);
             }
@@ -581,6 +581,7 @@
             int dominantTerrain;
             int terrainTilesCount = 0;
             NSMutableDictionary *shapeIDCounts = [NSMutableDictionary dictionary];
+            NSMutableSet *uniqueBaseShapes = isTestChunk ? [NSMutableSet set] : nil;
             
             if (hasMountainShapes) {
                 // If chunk has mountain shapes, it's a mountain chunk
@@ -617,6 +618,10 @@
                     // Track shape IDs for diagnostic
                     NSNumber *key = @(shapeID);
                     shapeIDCounts[key] = @([shapeIDCounts[key] intValue] + 1);
+                    
+                    if (isTestChunk) {
+                        [uniqueBaseShapes addObject:@(shapeID)];
+                    }
                 }
                 
                 // Find the most common terrain type in this chunk (among non-building tiles)
@@ -629,6 +634,11 @@
                         dominantTerrain = i;
                     }
                 }
+            }
+            
+            if (isTestChunk && uniqueBaseShapes) {
+                NSArray *sortedShapes = [[uniqueBaseShapes allObjects] sortedArrayUsingSelector:@selector(compare:)];
+                NSLog(@"  Base terrain shapes in chunk (%d,%d): %@", chunkX, chunkY, sortedShapes);
             }
             
             // Store the dominant terrain for this chunk

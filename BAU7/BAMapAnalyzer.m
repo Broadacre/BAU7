@@ -461,10 +461,19 @@
 
 - (BOOL)isMountainShape:(long)shapeID
 {
-    // Mountain shapes from U7 inspection
-    return (shapeID == 180 || shapeID == 182 || shapeID == 183 || shapeID == 195 ||
-            shapeID == 324 || shapeID == 395 || shapeID == 396 || 
-            shapeID == 969 || shapeID == 983);
+    // Explicit mountain shapes from U7 inspection
+    if (shapeID == 180 || shapeID == 182 || shapeID == 183 || shapeID == 195 ||
+        shapeID == 324 || shapeID == 395 || shapeID == 396 || 
+        shapeID == 969 || shapeID == 983) {
+        return YES;
+    }
+    
+    // Mountain/rock range (includes shapes like 132, 133, 135, 139, 144)
+    if (shapeID >= 130 && shapeID <= 146) {
+        return YES;
+    }
+    
+    return NO;
 }
 
 - (BOOL)isDesertObject:(long)shapeID

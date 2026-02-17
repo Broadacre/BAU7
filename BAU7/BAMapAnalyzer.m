@@ -489,12 +489,17 @@
                 NSLog(@"DIAGNOSTIC: Checking chunk (53,60) for mountain shapes, tile count=%d", maxCount);
             }
             
+            NSMutableSet *uniqueShapes = isTestChunk ? [NSMutableSet set] : nil;
+            
             for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
                 U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
                 long shapeID = chunkIdx->shapeIndex;
                 
-                if (isTestChunk && tileIdx < 20) {
-                    NSLog(@"  Tile %d: shapeID=%ld, isMountain=%d", tileIdx, shapeID, [self isMountainShape:shapeID]);
+                if (isTestChunk) {
+                    [uniqueShapes addObject:@(shapeID)];
+                    if (tileIdx < 20) {
+                        NSLog(@"  Tile %d: shapeID=%ld, isMountain=%d", tileIdx, shapeID, [self isMountainShape:shapeID]);
+                    }
                 }
                 
                 if ([self isMountainShape:shapeID]) {
@@ -504,6 +509,11 @@
                     }
                     break; // Found a mountain shape - this is a mountain chunk
                 }
+            }
+            
+            if (isTestChunk) {
+                NSArray *sortedShapes = [[uniqueShapes allObjects] sortedArrayUsingSelector:@selector(compare:)];
+                NSLog(@"  ALL unique shapes in chunk (53,60): %@", sortedShapes);
             }
             
             if (isTestChunk) {

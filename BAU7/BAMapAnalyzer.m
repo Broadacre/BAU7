@@ -312,7 +312,9 @@
     NSLog(@"Analyzing terrain distribution...");
     
     NSMutableDictionary *counts = [NSMutableDictionary dictionary];
+    NSMutableDictionary *shapeIDSamples = [NSMutableDictionary dictionary]; // Track shape IDs per terrain
     int totalChunks = 0;
+    int sampleCount = 0;
     
     // Scan each chunk and determine dominant terrain type
     for (int chunkY = 0; chunkY < 192; chunkY++) {
@@ -328,6 +330,7 @@
             // Count terrain types across ALL tiles in this chunk
             int terrainTypeCounts[7] = {0}; // Array for each terrain type (0-6)
             int maxCount = [chunk->chunkMap count];
+            NSMutableDictionary *shapeIDCounts = [NSMutableDictionary dictionary];
             
             for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
                 U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
@@ -335,6 +338,10 @@
                 
                 int terrainType = [self terrainTypeForShapeID:shapeID];
                 terrainTypeCounts[terrainType]++;
+                
+                // Track shape IDs for diagnostic
+                NSNumber *key = @(shapeID);
+                shapeIDCounts[key] = @([shapeIDCounts[key] intValue] + 1);
             }
             
             // Find the most common terrain type in this chunk
@@ -354,6 +361,23 @@
             NSString *terrainName = [self terrainNameForType:dominantTerrain];
             counts[terrainName] = @([counts[terrainName] intValue] + 1);
             totalChunks++;
+            
+            // Sample first 10 chunks for diagnostic logging
+            if (sampleCount < 10 && maxCount > 0) {
+                // Find most common shape ID in this chunk
+                NSNumber *topShape = nil;
+                int topCount = 0;
+                for (NSNumber *shapeID in shapeIDCounts) {
+                    if ([shapeIDCounts[shapeID] intValue] > topCount) {
+                        topCount = [shapeIDCounts[shapeID] intValue];
+                        topShape = shapeID;
+                    }
+                }
+                
+                NSLog(@"Sample chunk (%d,%d): dominant terrain=%@ (type %d), top shape=%@ (%d/%d tiles)", 
+                      chunkX, chunkY, terrainName, dominantTerrain, topShape, topCount, maxCount);
+                sampleCount++;
+            }
         }
     }
     

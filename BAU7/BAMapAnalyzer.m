@@ -578,53 +578,48 @@
                 NSLog(@"  Result: hasMountainShapes = %d", hasMountainShapes);
             }
             
+            // ALWAYS collect base terrain shapes for diagnostic (even if chunk has mountains)
             int dominantTerrain;
             int terrainTilesCount = 0;
             NSMutableDictionary *shapeIDCounts = [NSMutableDictionary dictionary];
             NSMutableSet *uniqueBaseShapes = isTestChunk ? [NSMutableSet set] : nil;
             
-            if (hasMountainShapes) {
-                // If chunk has mountain shapes, it's a mountain chunk
-                dominantTerrain = TerrainTypeMountain;
+            // Scan base terrain first (needed for both mountain and non-mountain chunks)
+            for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
+                U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
+                long shapeID = chunkIdx->shapeIndex;
                 
-                // Still track shape IDs for diagnostic
-                for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
-                    U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
-                    long shapeID = chunkIdx->shapeIndex;
-                    if (![self isBuildingShape:shapeID]) {
-                        terrainTilesCount++;
-                        NSNumber *key = @(shapeID);
-                        shapeIDCounts[key] = @([shapeIDCounts[key] intValue] + 1);
-                    }
-                }
-            } else {
-                // Count terrain types across ALL tiles in this chunk
-                // Skip building shapes - we want the UNDERLYING terrain
-                int terrainTypeCounts[7] = {0}; // Array for each terrain type (0-6)
-                
-                for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
-                    U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
-                    long shapeID = chunkIdx->shapeIndex;
-                    
-                    // SKIP BUILDING SHAPES - we only want terrain
-                    if ([self isBuildingShape:shapeID]) {
-                        continue;
-                    }
-                    
-                    int terrainType = [self terrainTypeForShapeID:shapeID];
-                    terrainTypeCounts[terrainType]++;
+                if (![self isBuildingShape:shapeID]) {
                     terrainTilesCount++;
-                    
-                    // Track shape IDs for diagnostic
                     NSNumber *key = @(shapeID);
                     shapeIDCounts[key] = @([shapeIDCounts[key] intValue] + 1);
-                    
                     if (isTestChunk) {
                         [uniqueBaseShapes addObject:@(shapeID)];
                     }
                 }
+            }
+            
+            if (isTestChunk && uniqueBaseShapes) {
+                NSArray *sortedShapes = [[uniqueBaseShapes allObjects] sortedArrayUsingSelector:@selector(compare:)];
+                NSLog(@"  Base terrain shapes in chunk (%d,%d): %@", chunkX, chunkY, sortedShapes);
+            }
+            
+            if (hasMountainShapes) {
+                // If chunk has mountain shapes, it's a mountain chunk
+                dominantTerrain = TerrainTypeMountain;
+            } else {
+                // No mountain shapes - determine terrain from base tiles
+                int terrainTypeCounts[7] = {0}; // Array for each terrain type (0-6)
                 
-                // Find the most common terrain type in this chunk (among non-building tiles)
+                // Count terrain types (already scanned shapes above)
+                for (NSNumber *shapeKey in shapeIDCounts) {
+                    long shapeID = [shapeKey longValue];
+                    int count = [shapeIDCounts[shapeKey] intValue];
+                    int terrainType = [self terrainTypeForShapeID:shapeID];
+                    terrainTypeCounts[terrainType] += count;
+                }
+                
+                // Find the most common terrain type in this chunk
                 dominantTerrain = TerrainTypeOther;
                 int maxTerrainCount = 0;
                 
@@ -634,11 +629,6 @@
                         dominantTerrain = i;
                     }
                 }
-            }
-            
-            if (isTestChunk && uniqueBaseShapes) {
-                NSArray *sortedShapes = [[uniqueBaseShapes allObjects] sortedArrayUsingSelector:@selector(compare:)];
-                NSLog(@"  Base terrain shapes in chunk (%d,%d): %@", chunkX, chunkY, sortedShapes);
             }
             
             // Store the dominant terrain for this chunk

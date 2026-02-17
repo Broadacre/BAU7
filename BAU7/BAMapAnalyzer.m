@@ -246,6 +246,8 @@
     int grassCount = 0;
     int mountainCount = 0;
     int waterCount = 0;
+    int forestCount = 0;
+    int otherCount = 0;
     int totalSampled = 0;
     
     for (int cy = minChunkY; cy <= maxChunkY; cy++) {
@@ -263,27 +265,47 @@
                 case TerrainTypeWater:
                     waterCount++;
                     break;
+                case TerrainTypeForest:
+                    forestCount++;
+                    break;
+                default:
+                    otherCount++;
+                    break;
             }
         }
     }
     
     // Cities are on grass/flat land; dungeons are on/in mountains
-    // If >40% of surrounding chunks are mountains, it's a dungeon
-    // If >30% are grass, it's a city
+    // If >30% of surrounding chunks are mountains, it's a dungeon
+    // If >40% are grass, it's a city
     
-    float mountainPercent = (float)mountainCount / totalSampled;
-    float grassPercent = (float)grassCount / totalSampled;
+    float mountainPercent = (float)mountainCount / totalSampled * 100.0;
+    float grassPercent = (float)grassCount / totalSampled * 100.0;
+    float waterPercent = (float)waterCount / totalSampled * 100.0;
+    float forestPercent = (float)forestCount / totalSampled * 100.0;
     
-    if (mountainPercent > 0.4) {
-        return NO; // Dungeon
+    BOOL isCity;
+    NSString *reason;
+    
+    if (mountainPercent > 30.0) {
+        isCity = NO;
+        reason = [NSString stringWithFormat:@"mountain %.1f%% > 30%%", mountainPercent];
+    } else if (grassPercent > 40.0) {
+        isCity = YES;
+        reason = [NSString stringWithFormat:@"grass %.1f%% > 40%%", grassPercent];
+    } else {
+        // Ambiguous - default to city if more grass than mountains
+        isCity = (grassPercent > mountainPercent);
+        reason = [NSString stringWithFormat:@"grass %.1f%% vs mountain %.1f%% (ambiguous)", grassPercent, mountainPercent];
     }
     
-    if (grassPercent > 0.3) {
-        return YES; // City
-    }
+    NSLog(@"  Cluster at (%d,%d): %@ - terrain: grass=%.1f%% mtn=%.1f%% water=%.1f%% forest=%.1f%% other=%.1f%%",
+          worldX, worldY, 
+          isCity ? @"CITY" : @"DUNGEON",
+          grassPercent, mountainPercent, waterPercent, forestPercent, 
+          (float)otherCount / totalSampled * 100.0);
     
-    // Ambiguous - default to city if not clearly on mountains
-    return (mountainPercent < grassPercent);
+    return isCity;
 }
 
 - (NSDictionary *)floodFillBuildingsFromX:(int)startX y:(int)startY

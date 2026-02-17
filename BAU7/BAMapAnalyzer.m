@@ -467,6 +467,12 @@
             shapeID == 969 || shapeID == 983);
 }
 
+- (BOOL)isDesertObject:(long)shapeID
+{
+    // Desert objects from U7 inspection (cacti, desert plants)
+    return (shapeID == 962 || shapeID == 164);
+}
+
 - (void)analyzeTerrainDistribution
 {
     NSLog(@"Analyzing terrain distribution...");
@@ -499,9 +505,10 @@
                 NSLog(@"  Static items: %lu", (unsigned long)[mapChunk->staticItems count]);
             }
             
-            // FIRST: Check if chunk contains ANY mountain shapes
-            // Mountains are OBJECTS in staticItems, not base terrain in chunkMap
+            // FIRST: Check if chunk contains ANY special terrain objects (mountains, desert plants, etc)
+            // These are OBJECTS in staticItems, not base terrain in chunkMap
             BOOL hasMountainShapes = NO;
+            BOOL hasDesertObjects = NO;
             
             // Check staticItems (where mountains actually are!)
             if (mapChunk->staticItems) {
@@ -573,12 +580,20 @@
                         break;
                     }
                     
+                    // Check for desert objects (cacti, desert plants)
+                    if ([self isDesertObject:shapeID]) {
+                        hasDesertObjects = YES;
+                        if (isTestChunk) {
+                            NSLog(@"  -> FOUND DESERT OBJECT %ld in staticItems!", shapeID);
+                        }
+                    }
+                    
                     itemIdx++;
                 }
             }
             
             if (isTestChunk) {
-                NSLog(@"  Result: hasMountainShapes = %d", hasMountainShapes);
+                NSLog(@"  Result: hasMountainShapes = %d, hasDesertObjects = %d", hasMountainShapes, hasDesertObjects);
             }
             
             // ALWAYS collect base terrain shapes for diagnostic (even if chunk has mountains)
@@ -610,26 +625,41 @@
             if (hasMountainShapes) {
                 // If chunk has mountain shapes, it's a mountain chunk
                 dominantTerrain = TerrainTypeMountain;
+            } else if (hasDesertObjects) {
+                // If chunk has desert objects (cacti, etc), it's a desert chunk
+                dominantTerrain = TerrainTypeDesert;
+                if (isTestChunk) {
+                    NSLog(@"  Classified as DESERT due to desert objects");
+                }
             } else {
                 // No mountain shapes - determine terrain from base tiles
                 int terrainTypeCounts[8] = {0}; // Array for each terrain type (0-7, includes barren)
                 
-                // Count terrain types (already scanned shapes above)
-                for (NSNumber *shapeKey in shapeIDCounts) {
-                    long shapeID = [shapeKey longValue];
-                    int count = [shapeIDCounts[shapeKey] intValue];
-                    int terrainType = [self terrainTypeForShapeID:shapeID];
-                    terrainTypeCounts[terrainType] += count;
-                }
-                
-                // Find the most common terrain type in this chunk
-                dominantTerrain = TerrainTypeOther;
-                int maxTerrainCount = 0;
-                
-                for (int i = 0; i < 7; i++) {
-                    if (terrainTypeCounts[i] > maxTerrainCount) {
-                        maxTerrainCount = terrainTypeCounts[i];
-                        dominantTerrain = i;
+                // Special case: if chunk is 100% shape 10, it's desert (not grass)
+                if ([shapeIDCounts count] == 1 && shapeIDCounts[@(10)] != nil && 
+                    [shapeIDCounts[@(10)] intValue] == terrainTilesCount) {
+                    dominantTerrain = TerrainTypeDesert;
+                    if (isTestChunk) {
+                        NSLog(@"  Special case: 100%% shape 10 = DESERT");
+                    }
+                } else {
+                    // Count terrain types (already scanned shapes above)
+                    for (NSNumber *shapeKey in shapeIDCounts) {
+                        long shapeID = [shapeKey longValue];
+                        int count = [shapeIDCounts[shapeKey] intValue];
+                        int terrainType = [self terrainTypeForShapeID:shapeID];
+                        terrainTypeCounts[terrainType] += count;
+                    }
+                    
+                    // Find the most common terrain type in this chunk
+                    dominantTerrain = TerrainTypeOther;
+                    int maxTerrainCount = 0;
+                    
+                    for (int i = 0; i < 8; i++) {
+                        if (terrainTypeCounts[i] > maxTerrainCount) {
+                            maxTerrainCount = terrainTypeCounts[i];
+                            dominantTerrain = i;
+                        }
                     }
                 }
             }

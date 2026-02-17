@@ -483,14 +483,31 @@
             BOOL hasMountainShapes = NO;
             int maxCount = [chunk->chunkMap count];
             
+            // DIAGNOSTIC for chunk (53,60)
+            BOOL isTestChunk = (chunkX == 53 && chunkY == 60);
+            if (isTestChunk) {
+                NSLog(@"DIAGNOSTIC: Checking chunk (53,60) for mountain shapes, tile count=%d", maxCount);
+            }
+            
             for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
                 U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
                 long shapeID = chunkIdx->shapeIndex;
                 
+                if (isTestChunk && tileIdx < 20) {
+                    NSLog(@"  Tile %d: shapeID=%ld, isMountain=%d", tileIdx, shapeID, [self isMountainShape:shapeID]);
+                }
+                
                 if ([self isMountainShape:shapeID]) {
                     hasMountainShapes = YES;
+                    if (isTestChunk) {
+                        NSLog(@"  -> FOUND MOUNTAIN SHAPE %ld at tile %d!", shapeID, tileIdx);
+                    }
                     break; // Found a mountain shape - this is a mountain chunk
                 }
+            }
+            
+            if (isTestChunk) {
+                NSLog(@"  Result: hasMountainShapes = %d", hasMountainShapes);
             }
             
             int dominantTerrain;

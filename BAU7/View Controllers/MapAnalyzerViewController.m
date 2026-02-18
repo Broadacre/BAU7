@@ -488,8 +488,16 @@
     NSString *key = [NSString stringWithFormat:@"%@:%@", combo[@"shape"], combo[@"frame"]];
     
     // Map button tag to terrain type name
+    // Tags: Water=1, Grass=2, Mountain=3, Forest=4, Swamp=5, Desert=6, Barren=7, Other=8
     NSArray *terrainNames = @[@"other", @"water", @"grass", @"mountains", @"forest", 
-                              @"swamp", @"desert", @"barren"];
+                              @"swamp", @"desert", @"barren", @"other"];
+    
+    // Bounds check
+    if (sender.tag < 0 || sender.tag >= [terrainNames count]) {
+        NSLog(@"ERROR: Invalid button tag %ld", (long)sender.tag);
+        return;
+    }
+    
     NSString *terrainType = terrainNames[sender.tag];
     
     // Save mapping

@@ -26,6 +26,7 @@
     NSMutableSet *_visitedTiles;
     int *_terrainGrid; // 192x192 grid of terrain types
     NSMutableDictionary *_shapeFrameCombos; // Track all shape:frame combos for classifier
+    NSDictionary *_terrainMappings; // Loaded from TerrainMapping.json
 }
 
 - (instancetype)initWithMap:(U7Map *)map
@@ -39,10 +40,35 @@
         _visitedTiles = [NSMutableSet set];
         _shapeFrameCombos = [NSMutableDictionary dictionary];
         
+        // Load terrain mappings from JSON
+        [self loadTerrainMappings];
+        
         // Allocate terrain grid (192x192 chunks)
         _terrainGrid = calloc(192 * 192, sizeof(int));
     }
     return self;
+}
+
+- (void)loadTerrainMappings
+{
+    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
+    
+    if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+        NSData *data = [NSData dataWithContentsOfFile:filePath];
+        NSError *error = nil;
+        NSDictionary *loaded = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+        if (!error && loaded) {
+            _terrainMappings = loaded;
+            NSLog(@"📖 Loaded %lu terrain mappings from TerrainMapping.json", (unsigned long)[_terrainMappings count]);
+        } else {
+            _terrainMappings = @{};
+            NSLog(@"⚠️ Failed to load TerrainMapping.json: %@", error.localizedDescription);
+        }
+    } else {
+        _terrainMappings = @{};
+        NSLog(@"ℹ️ No TerrainMapping.json found - using hardcoded terrain detection");
+    }
 }
 
 - (void)analyze
@@ -732,12 +758,18 @@
                         NSLog(@"  Special case: 100%% shape 10 = DESERT");
                     }
                 } else {
-                    // Count terrain types (already scanned shapes above)
-                    for (NSNumber *shapeKey in shapeIDCounts) {
-                        long shapeID = [shapeKey longValue];
-                        int count = [shapeIDCounts[shapeKey] intValue];
-                        int terrainType = [self terrainTypeForShapeID:shapeID];
-                        terrainTypeCounts[terrainType] += count;
+                    // Count terrain types using shape:frame combos from mappings
+                    for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
+                        U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
+                        long shapeID = chunkIdx->shapeIndex;
+                        int frameID = chunkIdx->frameIndex;
+                        
+                        if ([self isBuildingShape:shapeID]) {
+                            continue; // Skip buildings
+                        }
+                        
+                        int terrainType = [self terrainTypeForShape:shapeID frame:frameID];
+                        terrainTypeCounts[terrainType]++;
                     }
                     
                     // Find the most common terrain type in this chunk
@@ -826,6 +858,28 @@ enum {
     TerrainTypeBarren = 7,
     TerrainTypeOther = 0
 };
+
+- (int)terrainTypeForShape:(long)shapeID frame:(int)frameID
+{
+    // FIRST: Check user-classified mappings
+    NSString *key = [NSString stringWithFormat:@"%ld:%d", shapeID, frameID];
+    NSString *terrainName = _terrainMappings[key];
+    
+    if (terrainName) {
+        // Map terrain name to enum value
+        if ([terrainName isEqualToString:@"water"]) return TerrainTypeWater;
+        if ([terrainName isEqualToString:@"grass"]) return TerrainTypeGrass;
+        if ([terrainName isEqualToString:@"mountains"]) return TerrainTypeMountain;
+        if ([terrainName isEqualToString:@"forest"]) return TerrainTypeForest;
+        if ([terrainName isEqualToString:@"swamp"]) return TerrainTypeSwamp;
+        if ([terrainName isEqualToString:@"desert"]) return TerrainTypeDesert;
+        if ([terrainName isEqualToString:@"barren"]) return TerrainTypeBarren;
+        return TerrainTypeOther;
+    }
+    
+    // FALLBACK: Use hardcoded shape range detection
+    return [self terrainTypeForShapeID:shapeID];
+}
 
 - (int)terrainTypeForShapeID:(long)shapeID
 {

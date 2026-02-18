@@ -358,51 +358,38 @@
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
     // Draw terrain base layer
-    int mountainRenders = 0;
     for (int y = 0; y < gridSize; y++) {
         for (int x = 0; x < gridSize; x++) {
             int terrainType = terrainGrid[y * gridSize + x];
             
-            // DIAGNOSTIC: Log when rendering our known mountain chunks + user's test chunk
-            if ((x == 28 && y == 4) || (x == 29 && y == 5) || (x == 53 && y == 60)) {
-                NSLog(@"RENDERING chunk (%d,%d): terrainType=%d", x, y, terrainType);
-            }
-            
             UIColor *color;
             switch (terrainType) {
-                case 1: // Water - deep blue
+                case 1: // Water - blue
                     color = [UIColor colorWithRed:0.15 green:0.35 blue:0.75 alpha:1.0];
-                    if (x == 53 && y == 60) {
-                        NSLog(@"  -> Assigned WATER color (blue) RGB=(0.15, 0.35, 0.75) - THIS IS WRONG!");
-                    }
                     break;
-                case 2: // Grass - light green
-                    color = [UIColor colorWithRed:0.45 green:0.65 blue:0.35 alpha:1.0];
+                case 2: // Grass - green
+                    color = [UIColor colorWithRed:0.2 green:0.7 blue:0.2 alpha:1.0];
                     break;
-                case 3: // Mountains - brown/gray
-                    color = [UIColor colorWithRed:0.55 green:0.50 blue:0.45 alpha:1.0];
-                    mountainRenders++;
-                    if ((x == 28 && y == 4) || (x == 29 && y == 5) || (x == 53 && y == 60)) {
-                        NSLog(@"  -> Assigned MOUNTAIN color (brown/gray) RGB=(0.55, 0.50, 0.45)");
-                    }
+                case 3: // Mountains - grey
+                    color = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0];
                     break;
                 case 4: // Forest - dark green
                     color = [UIColor colorWithRed:0.20 green:0.50 blue:0.25 alpha:1.0];
                     break;
-                case 5: // Swamp - muddy green
-                    color = [UIColor colorWithRed:0.35 green:0.45 blue:0.35 alpha:1.0];
+                case 5: // Swamp - light green
+                    color = [UIColor colorWithRed:0.6 green:0.8 blue:0.6 alpha:1.0];
                     break;
-                case 6: // Sand - sandy yellow
-                    color = [UIColor colorWithRed:0.85 green:0.75 blue:0.50 alpha:1.0];
+                case 6: // Sand - tan
+                    color = [UIColor colorWithRed:0.82 green:0.71 blue:0.55 alpha:1.0];
                     break;
-                case 7: // Dirt - tan/light brown
-                    color = [UIColor colorWithRed:0.70 green:0.60 blue:0.45 alpha:1.0];
-                    if ((x == 21 && y == 98) || (x == 20 && y == 99)) {
-                        NSLog(@"  -> Assigned DIRT color (tan) RGB=(0.70, 0.60, 0.45)");
-                    }
+                case 7: // Dirt - brown
+                    color = [UIColor colorWithRed:0.55 green:0.35 blue:0.20 alpha:1.0];
                     break;
-                default: // Other - dark gray
-                    color = [UIColor colorWithRed:0.25 green:0.25 blue:0.25 alpha:1.0];
+                case 0: // Other - purple
+                    color = [UIColor colorWithRed:0.6 green:0.2 blue:0.8 alpha:1.0];
+                    break;
+                default: // Unknown - black
+                    color = [UIColor blackColor];
                     break;
             }
             
@@ -410,7 +397,6 @@
             CGContextFillRect(ctx, CGRectMake(x * pixelScale, y * pixelScale, pixelScale, pixelScale));
         }
     }
-    NSLog(@"Total mountain chunks rendered: %d (expected ~3313)", mountainRenders);
     
     // Overlay building density (semi-transparent red)
     for (int y = 0; y < gridSize; y++) {

@@ -461,15 +461,11 @@
 
 - (BOOL)isMountainShape:(long)shapeID
 {
-    // Explicit mountain shapes from U7 inspection
+    // ONLY mountain OBJECTS (found in staticItems)
+    // Shapes 130-146 are base terrain tiles, NOT mountain objects
     if (shapeID == 180 || shapeID == 182 || shapeID == 183 || shapeID == 195 ||
         shapeID == 324 || shapeID == 395 || shapeID == 396 || 
         shapeID == 969 || shapeID == 983) {
-        return YES;
-    }
-    
-    // Mountain/rock range (includes shapes like 132, 133, 135, 139, 144)
-    if (shapeID >= 130 && shapeID <= 146) {
         return YES;
     }
     

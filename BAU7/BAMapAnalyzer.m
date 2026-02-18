@@ -645,15 +645,30 @@
                 }
             }
             
-            if (isTestChunk && uniqueBaseShapes) {
-                NSArray *sortedShapes = [[uniqueBaseShapes allObjects] sortedArrayUsingSelector:@selector(compare:)];
-                NSLog(@"  Base terrain shapes in chunk (%d,%d): %@", chunkX, chunkY, sortedShapes);
-                // Log shape+frame samples for unusual shapes
-                for (NSNumber *shapeKey in sortedShapes) {
-                    long sid = [shapeKey longValue];
-                    if (sid > 500) { // Only log high shape IDs (unusual ones)
-                        NSLog(@"    Shape %ld sample frame: %@", sid, shapeFrameSamples[shapeKey]);
+            if (isTestChunk) {
+                // Count all shape+frame combinations in this chunk
+                NSMutableDictionary *shapeFrameCounts = [NSMutableDictionary new];
+                for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
+                    U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];
+                    long shapeID = chunkIdx->shapeIndex;
+                    int frameID = chunkIdx->frameIndex;
+                    
+                    if (![self isBuildingShape:shapeID]) {
+                        NSString *combo = [NSString stringWithFormat:@"%ld:%d", shapeID, frameID];
+                        shapeFrameCounts[combo] = @([shapeFrameCounts[combo] intValue] + 1);
                     }
+                }
+                
+                // Sort by count (most common first)
+                NSArray *sortedCombos = [shapeFrameCounts keysSortedByValueUsingComparator:^NSComparisonResult(NSNumber *count1, NSNumber *count2) {
+                    return [count2 compare:count1]; // Descending
+                }];
+                
+                NSLog(@"  Top shape+frame combos in chunk (%d,%d):", chunkX, chunkY);
+                for (int i = 0; i < MIN(10, [sortedCombos count]); i++) {
+                    NSString *combo = sortedCombos[i];
+                    int count = [shapeFrameCounts[combo] intValue];
+                    NSLog(@"    %@ = %d tiles (%.1f%%)", combo, count, (count * 100.0 / terrainTilesCount));
                 }
             }
             

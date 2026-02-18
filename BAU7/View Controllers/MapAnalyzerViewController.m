@@ -478,6 +478,8 @@
 
 - (void)saveTerrainMappings
 {
+    NSLog(@"💾 Attempting to save %lu terrain mappings...", (unsigned long)[_terrainMappings count]);
+    
     NSError *error = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:_terrainMappings
                                                        options:NSJSONWritingPrettyPrinted
@@ -494,28 +496,44 @@
         [@"~/BAU7/BAU7/TerrainMapping.json" stringByExpandingTildeInPath]  // Fallback
     ];
     
+    NSLog(@"Checking %lu possible paths...", (unsigned long)[possiblePaths count]);
+    
     BOOL savedToProject = NO;
     for (NSString *path in possiblePaths) {
         NSString *dir = [path stringByDeletingLastPathComponent];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:dir]) {
+        BOOL dirExists = [[NSFileManager defaultManager] fileExistsAtPath:dir];
+        NSLog(@"  Path: %@", path);
+        NSLog(@"    Dir exists? %@", dirExists ? @"YES" : @"NO");
+        
+        if (dirExists) {
             BOOL success = [jsonData writeToFile:path atomically:YES];
+            NSLog(@"    Write success? %@", success ? @"YES" : @"NO");
+            
             if (success) {
-                NSLog(@"✅ Saved %lu terrain mappings to PROJECT: %@", (unsigned long)[_terrainMappings count], path);
-                NSLog(@"   📌 Commit to git: git add TerrainMapping.json && git commit -m 'Update terrain mappings' && git push");
+                // Verify it was actually written
+                NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
+                NSLog(@"✅ Saved %lu terrain mappings to: %@", (unsigned long)[_terrainMappings count], path);
+                NSLog(@"   File size: %@ bytes", attrs[NSFileSize]);
+                NSLog(@"   📌 Commit: git add BAU7/TerrainMapping.json && git commit -m 'Update terrain mappings' && git push");
                 savedToProject = YES;
                 break;
+            } else {
+                NSLog(@"    ⚠️ Write failed for %@", path);
             }
         }
     }
     
     if (!savedToProject) {
-        NSLog(@"⚠️ Could not find project directory - mappings only in bundle");
+        NSLog(@"❌ Could not save to any project directory!");
+        NSLog(@"   Current working dir: %@", [[NSFileManager defaultManager] currentDirectoryPath]);
+        NSLog(@"   Home dir: %@", NSHomeDirectory());
     }
 }
 
 - (void)classifyTerrain:(UIButton *)sender
 {
     if (_currentComboIndex >= [_unknownCombos count]) {
+        NSLog(@"⚠️ No more combos to classify");
         return; // No more combos
     }
     
@@ -529,17 +547,19 @@
     
     // Bounds check
     if (sender.tag < 0 || sender.tag >= [terrainNames count]) {
-        NSLog(@"ERROR: Invalid button tag %ld", (long)sender.tag);
+        NSLog(@"❌ Invalid button tag %ld", (long)sender.tag);
         return;
     }
     
     NSString *terrainType = terrainNames[sender.tag];
     
+    NSLog(@"🏷️ Classifying %@ as %@ (button tag %ld)", key, terrainType, (long)sender.tag);
+    
     // Save mapping
     _terrainMappings[key] = terrainType;
-    [self saveTerrainMappings];
+    NSLog(@"   Terrain mappings dict now has %lu entries", (unsigned long)[_terrainMappings count]);
     
-    NSLog(@"Classified %@ as %@", key, terrainType);
+    [self saveTerrainMappings];
     
     // Move to next combo
     _currentComboIndex++;

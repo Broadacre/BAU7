@@ -137,6 +137,13 @@
     _exportButton.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:_exportButton];
     
+    // Export Mappings button
+    _exportMappingsButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [_exportMappingsButton setTitle:@"Export Mappings" forState:UIControlStateNormal];
+    [_exportMappingsButton addTarget:self action:@selector(exportMappings:) forControlEvents:UIControlEventTouchUpInside];
+    _exportMappingsButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:_exportMappingsButton];
+    
     // Activity indicator
     _activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
     _activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
@@ -148,6 +155,9 @@
         // Buttons at top
         [_analyzeButton.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:10],
         [_analyzeButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        
+        [_exportMappingsButton.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:10],
+        [_exportMappingsButton.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
         
         [_exportButton.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:10],
         [_exportButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
@@ -459,6 +469,36 @@
     NSLog(@"Exported patterns to: %@", filePath);
 }
 
+- (void)exportMappings:(id)sender
+{
+    // Get the saved file from Documents
+    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
+    
+    if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"No Mappings"
+                                                                       message:@"No terrain mappings to export yet. Classify some tiles first!"
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+        [self presentViewController:alert animated:YES completion:nil];
+        return;
+    }
+    
+    // Share using activity controller (AirDrop, Files, etc.)
+    NSURL *fileURL = [NSURL fileURLWithPath:filePath];
+    UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:@[fileURL]
+                                                                             applicationActivities:nil];
+    
+    // For iPad - set popover presentation
+    if (activityVC.popoverPresentationController) {
+        activityVC.popoverPresentationController.sourceView = sender;
+    }
+    
+    [self presentViewController:activityVC animated:YES completion:^{
+        NSLog(@"📤 Sharing TerrainMapping.json (%lu mappings)", (unsigned long)[self.terrainMappings count]);
+    }];
+}
+
 - (NSString *)JSONStringFromDictionary:(NSDictionary *)dict
 {
     NSError *error = nil;
@@ -504,44 +544,20 @@
         return;
     }
     
-    // Try multiple possible project paths (Baker Street vs remote Macs)
-    NSArray *possiblePaths = @[
-        @"/Users/sonnymcllendon/BAU7/BAU7/TerrainMapping.json",  // Baker Street
-        @"/Users/danbrooker/Documents/BAU7/BAU7/TerrainMapping.json",  // Remote Macs
-        [@"~/BAU7/BAU7/TerrainMapping.json" stringByExpandingTildeInPath]  // Fallback
-    ];
+    // Save to app's Documents directory (inside sandbox - always works)
+    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
     
-    NSLog(@"Checking %lu possible paths...", (unsigned long)[possiblePaths count]);
+    BOOL success = [jsonData writeToFile:filePath atomically:YES];
     
-    BOOL savedToProject = NO;
-    for (NSString *path in possiblePaths) {
-        NSString *dir = [path stringByDeletingLastPathComponent];
-        BOOL dirExists = [[NSFileManager defaultManager] fileExistsAtPath:dir];
-        NSLog(@"  Path: %@", path);
-        NSLog(@"    Dir exists? %@", dirExists ? @"YES" : @"NO");
-        
-        if (dirExists) {
-            BOOL success = [jsonData writeToFile:path atomically:YES];
-            NSLog(@"    Write success? %@", success ? @"YES" : @"NO");
-            
-            if (success) {
-                // Verify it was actually written
-                NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
-                NSLog(@"✅ Saved %lu terrain mappings to: %@", (unsigned long)[_terrainMappings count], path);
-                NSLog(@"   File size: %@ bytes", attrs[NSFileSize]);
-                NSLog(@"   📌 Commit: git add BAU7/TerrainMapping.json && git commit -m 'Update terrain mappings' && git push");
-                savedToProject = YES;
-                break;
-            } else {
-                NSLog(@"    ⚠️ Write failed for %@", path);
-            }
-        }
-    }
-    
-    if (!savedToProject) {
-        NSLog(@"❌ Could not save to any project directory!");
-        NSLog(@"   Current working dir: %@", [[NSFileManager defaultManager] currentDirectoryPath]);
-        NSLog(@"   Home dir: %@", NSHomeDirectory());
+    if (success) {
+        NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil];
+        NSLog(@"✅ Saved %lu terrain mappings to app Documents:", (unsigned long)[_terrainMappings count]);
+        NSLog(@"   %@", filePath);
+        NSLog(@"   File size: %@ bytes", attrs[NSFileSize]);
+        NSLog(@"   📤 Use 'Export Mappings' button to save to project folder");
+    } else {
+        NSLog(@"❌ Failed to save to Documents folder");
     }
 }
 

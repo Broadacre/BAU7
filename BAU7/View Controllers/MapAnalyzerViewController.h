@@ -15,6 +15,7 @@
 @property (nonatomic, strong) UITextView *resultsTextView;
 @property (nonatomic, strong) UIButton *analyzeButton;
 @property (nonatomic, strong) UIButton *exportButton;
+@property (nonatomic, strong) UIButton *exportMappingsButton;
 @property (nonatomic, strong) UIActivityIndicatorView *activityIndicator;
 @property (nonatomic, strong) NSDictionary *analysisResults;
 

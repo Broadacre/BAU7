@@ -704,6 +704,35 @@
                     NSLog(@"  Classified as DESERT due to desert objects");
                 }
             } else {
+                // Check for water transition chunks (shapes 130-146 + water shapes)
+                BOOL hasWaterShapes = NO;
+                BOOL hasTransitionShapes = NO;
+                
+                for (NSNumber *shapeKey in shapeIDCounts) {
+                    long shapeID = [shapeKey longValue];
+                    
+                    // Water shapes: 19, 30, 31-48, 58-70
+                    if (shapeID == 19 || shapeID == 30 || 
+                        (shapeID >= 31 && shapeID <= 48) || 
+                        (shapeID >= 58 && shapeID <= 70)) {
+                        hasWaterShapes = YES;
+                    }
+                    
+                    // Transition shapes: 130-146
+                    if (shapeID >= 130 && shapeID <= 146) {
+                        hasTransitionShapes = YES;
+                    }
+                    
+                    if (hasWaterShapes && hasTransitionShapes) break;
+                }
+                
+                // If chunk has BOTH water and transition shapes → classify as water
+                if (hasWaterShapes && hasTransitionShapes) {
+                    dominantTerrain = TerrainTypeWater;
+                    if (isTestChunk) {
+                        NSLog(@"  Water transition detected → classified as WATER");
+                    }
+                } else {
                 // No mountain shapes - determine terrain from base tiles
                 int terrainTypeCounts[8] = {0}; // Array for each terrain type (0-7, includes barren)
                 
@@ -734,6 +763,7 @@
                         }
                     }
                 }
+                }  // Close water transition else block
             }
             
             // Store the dominant terrain for this chunk

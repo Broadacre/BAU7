@@ -600,24 +600,30 @@
 {
     U7Environment *env = u7Env;
     
-    if (!env || !env->ShapeManager) {
+    if (!env || !env->U7Shapes) {
         return nil;
     }
     
-    // Get shape from U7 shape manager
-    U7Shape *shape = [env->ShapeManager->shapeTable getShapeAtTableID:shapeID];
-    
-    if (!shape || frameID >= [shape->frames count]) {
+    // Bounds check
+    if (shapeID < 0 || shapeID >= [env->U7Shapes count]) {
         return nil;
     }
     
-    U7ShapeFrame *frame = shape->frames[frameID];
+    // Get shape from U7Shapes array
+    U7Shape *shape = env->U7Shapes[shapeID];
     
-    if (!frame || !frame->image) {
+    if (!shape || !shape->frames || frameID >= [shape->frames count]) {
         return nil;
     }
     
-    return frame->image;
+    // Get frame bitmap
+    U7Bitmap *frameBitmap = shape->frames[frameID];
+    
+    if (!frameBitmap || !frameBitmap->image) {
+        return nil;
+    }
+    
+    return frameBitmap->image;
 }
 
 @end

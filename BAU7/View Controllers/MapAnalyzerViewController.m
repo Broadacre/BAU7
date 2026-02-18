@@ -221,6 +221,20 @@
         // Get unknown shape:frame combos for classifier
         NSArray *allCombos = [analyzer getUnknownShapeFrameCombos];
         
+        // Filter out already-classified combos
+        NSMutableArray *unclassifiedCombos = [NSMutableArray array];
+        for (NSDictionary *combo in allCombos) {
+            NSString *key = [NSString stringWithFormat:@"%@:%@", combo[@"shape"], combo[@"frame"]];
+            if (!self.terrainMappings[key]) {
+                [unclassifiedCombos addObject:combo];
+            }
+        }
+        
+        NSLog(@"Total combos: %lu, Already classified: %lu, Remaining: %lu",
+              (unsigned long)[allCombos count],
+              (unsigned long)([allCombos count] - [unclassifiedCombos count]),
+              (unsigned long)[unclassifiedCombos count]);
+        
         // Generate heat map
         UIImage *heatMap = [self generateHeatMapFromPatterns:patternsWithGrid];
         
@@ -239,8 +253,8 @@
             
             self.resultsTextView.accessibilityValue = [self JSONStringFromDictionary:self.analysisResults];
             
-            // Start terrain classifier
-            self.unknownCombos = allCombos;
+            // Start terrain classifier with unclassified combos only
+            self.unknownCombos = unclassifiedCombos;
             self.currentComboIndex = 0;
             [self loadNextCombo];
         });
@@ -473,8 +487,14 @@
                                                        options:NSJSONWritingPrettyPrinted
                                                          error:&error];
     if (!error) {
-        [jsonData writeToFile:filePath atomically:YES];
-        NSLog(@"Saved %lu terrain mappings to %@", (unsigned long)[_terrainMappings count], filePath);
+        BOOL success = [jsonData writeToFile:filePath atomically:YES];
+        if (success) {
+            NSLog(@"✅ Saved %lu terrain mappings to %@", (unsigned long)[_terrainMappings count], filePath);
+        } else {
+            NSLog(@"❌ FAILED to save terrain mappings to %@", filePath);
+        }
+    } else {
+        NSLog(@"❌ JSON serialization error: %@", error.localizedDescription);
     }
 }
 
@@ -514,8 +534,9 @@
 - (void)loadNextCombo
 {
     if (_currentComboIndex >= [_unknownCombos count]) {
-        _shapeInfoLabel.text = @"All combos classified!";
-        _progressLabel.text = @"";
+        _shapeInfoLabel.text = [NSString stringWithFormat:@"✅ All combos classified!\n%lu total mappings saved", 
+                                (unsigned long)[_terrainMappings count]];
+        _progressLabel.text = @"TerrainMapping.json is ready to use";
         _chunkPreviewView.image = nil;
         return;
     }
@@ -527,8 +548,9 @@
     
     _shapeInfoLabel.text = [NSString stringWithFormat:@"Shape %ld : Frame %d\n%d occurrences", 
                             shapeID, frameID, count];
-    _progressLabel.text = [NSString stringWithFormat:@"%ld of %lu combos", 
-                          _currentComboIndex + 1, (unsigned long)[_unknownCombos count]];
+    _progressLabel.text = [NSString stringWithFormat:@"Classifying %ld of %lu unclassified combos\n(%lu already saved)", 
+                          _currentComboIndex + 1, (unsigned long)[_unknownCombos count],
+                          (unsigned long)[_terrainMappings count]];
     
     // Render chunk preview with highlighted tile
     NSDictionary *exampleChunk = combo[@"exampleChunk"];

@@ -471,11 +471,7 @@
 
 - (void)exportMappings:(id)sender
 {
-    // Get the saved file from Documents
-    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
-    
-    if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+    if ([_terrainMappings count] == 0) {
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"No Mappings"
                                                                        message:@"No terrain mappings to export yet. Classify some tiles first!"
                                                                 preferredStyle:UIAlertControllerStyleAlert];
@@ -484,8 +480,21 @@
         return;
     }
     
+    // Create temp file with MERGED mappings (bundle + Documents)
+    NSString *tempDir = NSTemporaryDirectory();
+    NSString *tempPath = [tempDir stringByAppendingPathComponent:@"TerrainMapping.json"];
+    
+    NSError *error = nil;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:_terrainMappings
+                                                       options:NSJSONWritingPrettyPrinted
+                                                         error:&error];
+    if (error || ![jsonData writeToFile:tempPath atomically:YES]) {
+        NSLog(@"❌ Failed to create temp export file");
+        return;
+    }
+    
     // Share using activity controller (AirDrop, Files, etc.)
-    NSURL *fileURL = [NSURL fileURLWithPath:filePath];
+    NSURL *fileURL = [NSURL fileURLWithPath:tempPath];
     UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:@[fileURL]
                                                                              applicationActivities:nil];
     
@@ -495,7 +504,9 @@
     }
     
     [self presentViewController:activityVC animated:YES completion:^{
-        NSLog(@"📤 Sharing TerrainMapping.json (%lu mappings)", (unsigned long)[self.terrainMappings count]);
+        NSLog(@"📤 Exported TerrainMapping.json with %lu total mappings", (unsigned long)[self.terrainMappings count]);
+        NSLog(@"   Save to: /Users/danbrooker/Documents/BAU7/BAU7/TerrainMapping.json");
+        NSLog(@"   Then: git add BAU7/TerrainMapping.json && git commit && git push");
     }];
 }
 
@@ -518,7 +529,7 @@
 {
     _terrainMappings = [NSMutableDictionary dictionary];
     
-    // Try to load from bundle first (git-tracked)
+    // Load from bundle first (git-tracked mappings from other machines)
     NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"TerrainMapping" ofType:@"json"];
     if (bundlePath) {
         NSData *data = [NSData dataWithContentsOfFile:bundlePath];
@@ -526,9 +537,29 @@
         NSDictionary *loaded = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
         if (!error && loaded) {
             [_terrainMappings addEntriesFromDictionary:loaded];
-            NSLog(@"Loaded %lu terrain mappings from bundle: %@", (unsigned long)[_terrainMappings count], bundlePath);
+            NSLog(@"📦 Loaded %lu terrain mappings from bundle (git)", (unsigned long)[_terrainMappings count]);
         }
     }
+    
+    // Then load from Documents (your new classifications since last export)
+    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *docsFile = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
+    
+    if ([[NSFileManager defaultManager] fileExistsAtPath:docsFile]) {
+        NSData *data = [NSData dataWithContentsOfFile:docsFile];
+        NSError *error = nil;
+        NSDictionary *loaded = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+        if (!error && loaded) {
+            NSUInteger beforeCount = [_terrainMappings count];
+            [_terrainMappings addEntriesFromDictionary:loaded];
+            NSUInteger newCount = [_terrainMappings count] - beforeCount;
+            if (newCount > 0) {
+                NSLog(@"📝 Loaded %lu NEW mappings from Documents (local work)", (unsigned long)newCount);
+            }
+        }
+    }
+    
+    NSLog(@"✅ Total mappings loaded: %lu", (unsigned long)[_terrainMappings count]);
 }
 
 - (void)saveTerrainMappings

@@ -503,7 +503,7 @@
             
             int maxCount = (int)[chunk->chunkMap count];
             
-            // DIAGNOSTIC for test chunks
+            // DIAGNOSTIC for test chunks  
             BOOL isTestChunk = (chunkX == 53 && chunkY == 60) || 
                               (chunkX == 21 && chunkY == 98) || (chunkX == 20 && chunkY == 99) ||
                               (chunkX == 80 && chunkY == 65) ||  // Swamp example
@@ -523,8 +523,9 @@
                               (chunkX == 10 && chunkY == 82);
             if (isTestChunk) {
                 NSLog(@"DIAGNOSTIC: Checking chunk (%d,%d) for terrain shapes", chunkX, chunkY);
-                NSLog(@"  Base terrain tiles: %lu", (unsigned long)[chunk->chunkMap count]);
-                NSLog(@"  Static items: %lu", (unsigned long)[mapChunk->staticItems count]);
+                NSLog(@"  chunkMap tiles: %lu", (unsigned long)[chunk->chunkMap count]);
+                NSLog(@"  groundObjects: %lu", (unsigned long)[mapChunk->groundObjects count]);
+                NSLog(@"  staticItems: %lu", (unsigned long)[mapChunk->staticItems count]);
             }
             
             // FIRST: Check if chunk contains ANY special terrain objects (mountains, desert plants, etc)
@@ -646,7 +647,17 @@
             }
             
             if (isTestChunk) {
-                // Count all shape+frame combinations in this chunk
+                // Log groundObjects
+                if (mapChunk->groundObjects && [mapChunk->groundObjects count] > 0) {
+                    NSLog(@"  groundObjects shapes (first 10):");
+                    for (int i = 0; i < MIN(10, [mapChunk->groundObjects count]); i++) {
+                        U7ShapeReference *obj = mapChunk->groundObjects[i];
+                        NSLog(@"    [%d] shape %ld frame %d at (%d,%d) lift %d", 
+                              i, obj->shapeID, obj->frameNumber, obj->xloc, obj->yloc, obj->lift);
+                    }
+                }
+                
+                // Count all shape+frame combinations in this chunk (from chunkMap)
                 NSMutableDictionary *shapeFrameCounts = [NSMutableDictionary new];
                 for (int tileIdx = 0; tileIdx < maxCount; tileIdx++) {
                     U7ChunkIndex *chunkIdx = chunk->chunkMap[tileIdx];

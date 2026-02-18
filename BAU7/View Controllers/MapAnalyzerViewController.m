@@ -79,7 +79,7 @@
     
     // Terrain classification buttons (2 rows of 4)
     NSArray *terrainTypes = @[@"Water", @"Grass", @"Mountain", @"Forest",
-                              @"Swamp", @"Desert", @"Barren", @"Other"];
+                              @"Swamp", @"Sand", @"Dirt", @"Other"];
     CGFloat buttonWidth = 80;
     CGFloat buttonHeight = 40;
     CGFloat spacing = 10;
@@ -282,10 +282,10 @@
     NSLog(@"TRANSITION CHUNKS:");
     NSLog(@"  Chunk (41,66): terrainGrid value = %d (water→mountain)", terrainGrid[66 * 192 + 41]);
     NSLog(@"  Chunk (39,67): terrainGrid value = %d (water→grass)", terrainGrid[67 * 192 + 39]);
-    NSLog(@"  Chunk (14,87): terrainGrid value = %d (water→barren)", terrainGrid[87 * 192 + 14]);
+    NSLog(@"  Chunk (14,87): terrainGrid value = %d (water→dirt)", terrainGrid[87 * 192 + 14]);
     NSLog(@"  Chunk (78,89): terrainGrid value = %d (water→grass)", terrainGrid[89 * 192 + 78]);
-    NSLog(@"  Chunk (129,79): terrainGrid value = %d (water→desert)", terrainGrid[79 * 192 + 129]);
-    NSLog(@"  Chunk (129,54): terrainGrid value = %d (desert→grass)", terrainGrid[54 * 192 + 129]);
+    NSLog(@"  Chunk (129,79): terrainGrid value = %d (water→sand)", terrainGrid[79 * 192 + 129]);
+    NSLog(@"  Chunk (129,54): terrainGrid value = %d (sand→grass)", terrainGrid[54 * 192 + 129]);
     NSLog(@"  Chunk (128,56): terrainGrid value = %d (grass→mountain)", terrainGrid[56 * 192 + 128]);
     NSLog(@"  Chunk (124,49): terrainGrid value = %d (swamp→grass)", terrainGrid[49 * 192 + 124]);
     NSLog(@"STILL SHOWING GREEN:");
@@ -367,13 +367,13 @@
                 case 5: // Swamp - muddy green
                     color = [UIColor colorWithRed:0.35 green:0.45 blue:0.35 alpha:1.0];
                     break;
-                case 6: // Desert - sandy yellow
+                case 6: // Sand - sandy yellow
                     color = [UIColor colorWithRed:0.85 green:0.75 blue:0.50 alpha:1.0];
                     break;
-                case 7: // Barren - tan/light brown
+                case 7: // Dirt - tan/light brown
                     color = [UIColor colorWithRed:0.70 green:0.60 blue:0.45 alpha:1.0];
                     if ((x == 21 && y == 98) || (x == 20 && y == 99)) {
-                        NSLog(@"  -> Assigned BARREN color (tan) RGB=(0.70, 0.60, 0.45)");
+                        NSLog(@"  -> Assigned DIRT color (tan) RGB=(0.70, 0.60, 0.45)");
                     }
                     break;
                 default: // Other - dark gray
@@ -508,9 +508,9 @@
     NSString *key = [NSString stringWithFormat:@"%@:%@", combo[@"shape"], combo[@"frame"]];
     
     // Map button tag to terrain type name
-    // Tags: Water=1, Grass=2, Mountain=3, Forest=4, Swamp=5, Desert=6, Barren=7, Other=8
+    // Tags: Water=1, Grass=2, Mountain=3, Forest=4, Swamp=5, Sand=6, Dirt=7, Other=8
     NSArray *terrainNames = @[@"other", @"water", @"grass", @"mountains", @"forest", 
-                              @"swamp", @"desert", @"barren", @"other"];
+                              @"swamp", @"sand", @"dirt", @"other"];
     
     // Bounds check
     if (sender.tag < 0 || sender.tag >= [terrainNames count]) {

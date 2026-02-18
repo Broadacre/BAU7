@@ -535,10 +535,10 @@
                               // Transition chunks (original batch)
                               (chunkX == 41 && chunkY == 66) ||  // water→mountain
                               (chunkX == 39 && chunkY == 67) ||  // water→grass
-                              (chunkX == 14 && chunkY == 87) ||  // water→barren
+                              (chunkX == 14 && chunkY == 87) ||  // water→dirt
                               (chunkX == 78 && chunkY == 89) ||  // water→grass
-                              (chunkX == 129 && chunkY == 79) || // water→desert
-                              (chunkX == 129 && chunkY == 54) || // desert→grass
+                              (chunkX == 129 && chunkY == 79) || // water→sand
+                              (chunkX == 129 && chunkY == 54) || // sand→grass
                               (chunkX == 128 && chunkY == 56) || // grass→mountain
                               (chunkX == 124 && chunkY == 49) || // swamp→grass
                               // Still showing green (new batch)
@@ -741,21 +741,21 @@
                 // If chunk has mountain shapes, it's a mountain chunk
                 dominantTerrain = TerrainTypeMountain;
             } else if (hasDesertObjects) {
-                // If chunk has desert objects (cacti, etc), it's a desert chunk
-                dominantTerrain = TerrainTypeDesert;
+                // If chunk has desert objects (cacti, etc), it's a sand chunk
+                dominantTerrain = TerrainTypeSand;
                 if (isTestChunk) {
-                    NSLog(@"  Classified as DESERT due to desert objects");
+                    NSLog(@"  Classified as SAND due to desert objects");
                 }
             } else {
                 // No mountain shapes - determine terrain from base tiles
                 int terrainTypeCounts[8] = {0}; // Array for each terrain type (0-7, includes barren)
                 
-                // Special case: if chunk is 100% shape 10, it's desert (not grass)
+                // Special case: if chunk is 100% shape 10, it's sand (not grass)
                 if ([shapeIDCounts count] == 1 && shapeIDCounts[@(10)] != nil && 
                     [shapeIDCounts[@(10)] intValue] == terrainTilesCount) {
-                    dominantTerrain = TerrainTypeDesert;
+                    dominantTerrain = TerrainTypeSand;
                     if (isTestChunk) {
-                        NSLog(@"  Special case: 100%% shape 10 = DESERT");
+                        NSLog(@"  Special case: 100%% shape 10 = SAND");
                     }
                 } else {
                     // Count terrain types using shape:frame combos from mappings
@@ -830,9 +830,9 @@
     }
     
     NSLog(@"Terrain analysis complete: analyzed %d chunks", totalChunks);
-    NSLog(@"Terrain breakdown: water=%@ grass=%@ mountains=%@ forest=%@ swamp=%@ desert=%@ barren=%@ other=%@",
+    NSLog(@"Terrain breakdown: water=%@ grass=%@ mountains=%@ forest=%@ swamp=%@ sand=%@ dirt=%@ other=%@",
           counts[@"water"], counts[@"grass"], counts[@"mountains"], counts[@"forest"], 
-          counts[@"swamp"], counts[@"desert"], counts[@"barren"], counts[@"other"]);
+          counts[@"swamp"], counts[@"sand"], counts[@"dirt"], counts[@"other"]);
     
     // Sample a few mountain chunks to verify they're stored correctly
     int mountainSamples = 0;
@@ -854,8 +854,8 @@ enum {
     TerrainTypeMountain = 3,
     TerrainTypeForest = 4,
     TerrainTypeSwamp = 5,
-    TerrainTypeDesert = 6,
-    TerrainTypeBarren = 7,
+    TerrainTypeSand = 6,
+    TerrainTypeDirt = 7,
     TerrainTypeOther = 0
 };
 
@@ -872,8 +872,8 @@ enum {
         if ([terrainName isEqualToString:@"mountains"]) return TerrainTypeMountain;
         if ([terrainName isEqualToString:@"forest"]) return TerrainTypeForest;
         if ([terrainName isEqualToString:@"swamp"]) return TerrainTypeSwamp;
-        if ([terrainName isEqualToString:@"desert"]) return TerrainTypeDesert;
-        if ([terrainName isEqualToString:@"barren"]) return TerrainTypeBarren;
+        if ([terrainName isEqualToString:@"sand"]) return TerrainTypeSand;
+        if ([terrainName isEqualToString:@"dirt"]) return TerrainTypeDirt;
         return TerrainTypeOther;
     }
     
@@ -902,9 +902,9 @@ enum {
         return TerrainTypeMountain;
     }
     
-    // BARREN - Rocky/barren ground (before water check, as some overlap)
+    // DIRT - Rocky/dirt ground (before water check, as some overlap)
     if (shapeID == 5 || (shapeID >= 49 && shapeID <= 57) || shapeID == 61 || shapeID == 185) {
-        return TerrainTypeBarren;
+        return TerrainTypeDirt;
     }
     
     // WATER - Shapes seen in all four corner chunks
@@ -935,12 +935,12 @@ enum {
         return TerrainTypeSwamp;
     }
     
-    // Desert (101-112 range, excluding swamp 113-120)
+    // Sand (101-112 range, excluding swamp 113-120)
     if (shapeID >= 101 && shapeID <= 112) {
-        return TerrainTypeDesert;
+        return TerrainTypeSand;
     }
     if (shapeID >= 121 && shapeID <= 129) {
-        return TerrainTypeDesert;
+        return TerrainTypeSand;
     }
     
     return TerrainTypeOther;
@@ -954,8 +954,8 @@ enum {
         case TerrainTypeMountain: return @"mountains";
         case TerrainTypeForest: return @"forest";
         case TerrainTypeSwamp: return @"swamp";
-        case TerrainTypeDesert: return @"desert";
-        case TerrainTypeBarren: return @"barren";
+        case TerrainTypeSand: return @"sand";
+        case TerrainTypeDirt: return @"dirt";
         default: return @"other";
     }
 }

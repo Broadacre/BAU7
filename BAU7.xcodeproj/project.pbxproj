@@ -447,6 +447,7 @@
 		4FE4AB91270A8E7B00E1F798 /* RandoMapView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4AB90270A8E7B00E1F798 /* RandoMapView.m */; };
 		4FE9817529464C8500F54757 /* BABitmap.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE9817429464C8500F54757 /* BABitmap.m */; };
 		4FE981782946BFF400F54757 /* BAU7BitmapInterpreter.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FE981772946BFF400F54757 /* BAU7BitmapInterpreter.m */; };
+		4FF1284A2F457320009F4DA5 /* TerrainMapping.json in Resources */ = {isa = PBXBuildFile; fileRef = 4FF128492F457320009F4DA5 /* TerrainMapping.json */; };
 		4FF5E92D2C0FBE0900D9C43E /* ShapeReferenceXMLParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FF5E92C2C0FBE0900D9C43E /* ShapeReferenceXMLParser.m */; };
 /* End PBXBuildFile section */
 
@@ -963,6 +964,7 @@
 		4FE9817429464C8500F54757 /* BABitmap.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BABitmap.m; sourceTree = "<group>"; };
 		4FE981762946BFF400F54757 /* BAU7BitmapInterpreter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BAU7BitmapInterpreter.h; path = ../BAU7BitmapInterpreter.h; sourceTree = "<group>"; };
 		4FE981772946BFF400F54757 /* BAU7BitmapInterpreter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = BAU7BitmapInterpreter.m; path = ../BAU7BitmapInterpreter.m; sourceTree = "<group>"; };
+		4FF128492F457320009F4DA5 /* TerrainMapping.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TerrainMapping.json; sourceTree = "<group>"; };
 		4FF5E92B2C0FBE0900D9C43E /* ShapeReferenceXMLParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShapeReferenceXMLParser.h; sourceTree = "<group>"; };
 		4FF5E92C2C0FBE0900D9C43E /* ShapeReferenceXMLParser.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ShapeReferenceXMLParser.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1019,6 +1021,7 @@
 		4F2C20E126BE0C8F00E5F92C /* BAU7 */ = {
 			isa = PBXGroup;
 			children = (
+				4FF128492F457320009F4DA5 /* TerrainMapping.json */,
 				4F4EA3272F43D3BC00038D37 /* BAMapAnalyzer.h */,
 				4F4EA3282F43D3BC00038D37 /* BAMapAnalyzer.m */,
 				4FE06FBF2F43BAEB003C1250 /* Resources */,
@@ -2060,6 +2063,7 @@
 				4F2C232E26BE0ED500E5F92C /* U7IREG21 in Resources */,
 				4F2C238A26BE0ED500E5F92C /* U7IFIX0E in Resources */,
 				4F2C232026BE0ED500E5F92C /* GAMETIMB.DAT in Resources */,
+				4FF1284A2F457320009F4DA5 /* TerrainMapping.json in Resources */,
 				4F2C238426BE0ED500E5F92C /* U7IFIX51 in Resources */,
 				4F2C238E26BE0ED500E5F92C /* U7IFIX67 in Resources */,
 				4F2C235F26BE0ED500E5F92C /* EQUIP.DAT in Resources */,

@@ -463,38 +463,53 @@
 {
     _terrainMappings = [NSMutableDictionary dictionary];
     
-    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
-    
-    if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
-        NSData *data = [NSData dataWithContentsOfFile:filePath];
+    // Try to load from bundle first (git-tracked)
+    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"TerrainMapping" ofType:@"json"];
+    if (bundlePath) {
+        NSData *data = [NSData dataWithContentsOfFile:bundlePath];
         NSError *error = nil;
         NSDictionary *loaded = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
         if (!error && loaded) {
             [_terrainMappings addEntriesFromDictionary:loaded];
-            NSLog(@"Loaded %lu terrain mappings from %@", (unsigned long)[_terrainMappings count], filePath);
+            NSLog(@"Loaded %lu terrain mappings from bundle: %@", (unsigned long)[_terrainMappings count], bundlePath);
         }
     }
 }
 
 - (void)saveTerrainMappings
 {
-    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
-    
     NSError *error = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:_terrainMappings
                                                        options:NSJSONWritingPrettyPrinted
                                                          error:&error];
-    if (!error) {
-        BOOL success = [jsonData writeToFile:filePath atomically:YES];
-        if (success) {
-            NSLog(@"✅ Saved %lu terrain mappings to %@", (unsigned long)[_terrainMappings count], filePath);
-        } else {
-            NSLog(@"❌ FAILED to save terrain mappings to %@", filePath);
-        }
-    } else {
+    if (error) {
         NSLog(@"❌ JSON serialization error: %@", error.localizedDescription);
+        return;
+    }
+    
+    // Try multiple possible project paths (Baker Street vs remote Macs)
+    NSArray *possiblePaths = @[
+        @"/Users/sonnymcllendon/BAU7/BAU7/TerrainMapping.json",  // Baker Street
+        @"/Users/danbrooker/Documents/BAU7/BAU7/TerrainMapping.json",  // Remote Macs
+        [@"~/BAU7/BAU7/TerrainMapping.json" stringByExpandingTildeInPath]  // Fallback
+    ];
+    
+    BOOL savedToProject = NO;
+    for (NSString *path in possiblePaths) {
+        NSString *dir = [path stringByDeletingLastPathComponent];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:dir]) {
+            BOOL success = [jsonData writeToFile:path atomically:YES];
+            if (success) {
+                NSLog(@"✅ Saved %lu terrain mappings to PROJECT: %@", (unsigned long)[_terrainMappings count], path);
+                NSLog(@"   📌 Commit to git: git add TerrainMapping.json && git commit -m 'Update terrain mappings' && git push");
+                savedToProject = YES;
+                break;
+            }
+        }
+    }
+    
+    if (!savedToProject) {
+        NSLog(@"⚠️ Could not find project directory - mappings only in bundle");
     }
 }
 

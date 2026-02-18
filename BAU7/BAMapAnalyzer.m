@@ -51,23 +51,23 @@
 
 - (void)loadTerrainMappings
 {
-    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
+    // Load from app bundle (git-tracked file)
+    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"TerrainMapping" ofType:@"json"];
     
-    if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
-        NSData *data = [NSData dataWithContentsOfFile:filePath];
+    if (bundlePath && [[NSFileManager defaultManager] fileExistsAtPath:bundlePath]) {
+        NSData *data = [NSData dataWithContentsOfFile:bundlePath];
         NSError *error = nil;
         NSDictionary *loaded = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
         if (!error && loaded) {
             _terrainMappings = loaded;
-            NSLog(@"📖 Loaded %lu terrain mappings from TerrainMapping.json", (unsigned long)[_terrainMappings count]);
+            NSLog(@"📖 Loaded %lu terrain mappings from bundle: %@", (unsigned long)[_terrainMappings count], bundlePath);
         } else {
             _terrainMappings = @{};
             NSLog(@"⚠️ Failed to load TerrainMapping.json: %@", error.localizedDescription);
         }
     } else {
         _terrainMappings = @{};
-        NSLog(@"ℹ️ No TerrainMapping.json found - using hardcoded terrain detection");
+        NSLog(@"ℹ️ No TerrainMapping.json found in bundle - using hardcoded terrain detection");
     }
 }
 

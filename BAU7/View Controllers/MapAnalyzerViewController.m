@@ -61,6 +61,15 @@
     _chunkPreviewView.translatesAutoresizingMaskIntoConstraints = NO;
     [_classifierPanel addSubview:_chunkPreviewView];
     
+    // Enlarged tile preview (3x scale)
+    _enlargedTileView = [[UIImageView alloc] initWithFrame:CGRectZero];
+    _enlargedTileView.backgroundColor = [UIColor darkGrayColor];
+    _enlargedTileView.contentMode = UIViewContentModeScaleAspectFit;
+    _enlargedTileView.layer.borderColor = [UIColor whiteColor].CGColor;
+    _enlargedTileView.layer.borderWidth = 2.0;
+    _enlargedTileView.translatesAutoresizingMaskIntoConstraints = NO;
+    [_classifierPanel addSubview:_enlargedTileView];
+    
     // Shape info label
     _shapeInfoLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     _shapeInfoLabel.font = [UIFont boldSystemFontOfSize:14];
@@ -160,6 +169,12 @@
         [_chunkPreviewView.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
         [_chunkPreviewView.widthAnchor constraintEqualToConstant:256], // 16 tiles * 16 pixels
         [_chunkPreviewView.heightAnchor constraintEqualToConstant:256],
+        
+        // Enlarged tile to the right of chunk preview
+        [_enlargedTileView.topAnchor constraintEqualToAnchor:_classifierPanel.topAnchor],
+        [_enlargedTileView.leadingAnchor constraintEqualToAnchor:_chunkPreviewView.trailingAnchor constant:10],
+        [_enlargedTileView.widthAnchor constraintEqualToConstant:48], // 16 pixels * 3
+        [_enlargedTileView.heightAnchor constraintEqualToConstant:48],
         
         // Shape info below preview
         [_shapeInfoLabel.topAnchor constraintEqualToAnchor:_chunkPreviewView.bottomAnchor constant:10],
@@ -573,6 +588,7 @@
                                 (unsigned long)[_terrainMappings count]];
         _progressLabel.text = @"TerrainMapping.json is ready to use";
         _chunkPreviewView.image = nil;
+        _enlargedTileView.image = nil;
         return;
     }
     
@@ -595,6 +611,20 @@
     
     UIImage *preview = [self renderChunkAtX:chunkX y:chunkY highlightTile:tileIndex];
     _chunkPreviewView.image = preview;
+    
+    // Render enlarged version of the specific tile (3x scale)
+    UIImage *tileImage = [self getTileImageForShape:shapeID frame:frameID];
+    if (tileImage) {
+        // Scale up 3x
+        CGSize enlargedSize = CGSizeMake(tileImage.size.width * 3, tileImage.size.height * 3);
+        UIGraphicsBeginImageContextWithOptions(enlargedSize, NO, 1.0);
+        [tileImage drawInRect:CGRectMake(0, 0, enlargedSize.width, enlargedSize.height)];
+        UIImage *enlarged = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+        _enlargedTileView.image = enlarged;
+    } else {
+        _enlargedTileView.image = nil;
+    }
 }
 
 - (UIImage *)renderChunkAtX:(int)chunkX y:(int)chunkY highlightTile:(int)tileIndex

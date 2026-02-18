@@ -21,6 +21,7 @@
 // Terrain classifier UI
 @property (nonatomic, strong) UIView *classifierPanel;
 @property (nonatomic, strong) UIImageView *chunkPreviewView;
+@property (nonatomic, strong) UIImageView *enlargedTileView;
 @property (nonatomic, strong) UILabel *shapeInfoLabel;
 @property (nonatomic, strong) UILabel *progressLabel;
 @property (nonatomic, strong) NSMutableDictionary *terrainMappings;

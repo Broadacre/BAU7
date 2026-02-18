@@ -25,6 +25,7 @@
     NSMutableDictionary *_terrainStats;
     NSMutableSet *_visitedTiles;
     int *_terrainGrid; // 192x192 grid of terrain types
+    NSMutableDictionary *_shapeFrameCombos; // Track all shape:frame combos for classifier
 }
 
 - (instancetype)initWithMap:(U7Map *)map
@@ -36,6 +37,7 @@
         _roads = [NSMutableArray array];
         _terrainStats = [NSMutableDictionary dictionary];
         _visitedTiles = [NSMutableSet set];
+        _shapeFrameCombos = [NSMutableDictionary dictionary];
         
         // Allocate terrain grid (192x192 chunks)
         _terrainGrid = calloc(192 * 192, sizeof(int));
@@ -632,6 +634,21 @@
                     terrainTilesCount++;
                     NSNumber *key = @(shapeID);
                     shapeIDCounts[key] = @([shapeIDCounts[key] intValue] + 1);
+                    
+                    // Track shape:frame combos for terrain classifier
+                    NSString *comboKey = [NSString stringWithFormat:@"%ld:%d", shapeID, frameID];
+                    NSMutableDictionary *comboInfo = _shapeFrameCombos[comboKey];
+                    if (!comboInfo) {
+                        comboInfo = [@{
+                            @"shape": @(shapeID),
+                            @"frame": @(frameID),
+                            @"count": @(0),
+                            @"exampleChunk": @{@"x": @(chunkX), @"y": @(chunkY), @"tileIndex": @(tileIdx)}
+                        } mutableCopy];
+                        _shapeFrameCombos[comboKey] = comboInfo;
+                    }
+                    comboInfo[@"count"] = @([comboInfo[@"count"] intValue] + 1);
+                    
                     if (isTestChunk) {
                         [uniqueBaseShapes addObject:@(shapeID)];
                         // Track first frame seen for each shape
@@ -949,6 +966,21 @@ enum {
     }
     
     return patterns;
+}
+
+- (NSArray *)getUnknownShapeFrameCombos
+{
+    // Return all shape:frame combos sorted by frequency (most common first)
+    NSArray *sortedKeys = [_shapeFrameCombos keysSortedByValueUsingComparator:^NSComparisonResult(NSDictionary *info1, NSDictionary *info2) {
+        return [info2[@"count"] compare:info1[@"count"]]; // Descending
+    }];
+    
+    NSMutableArray *result = [NSMutableArray array];
+    for (NSString *key in sortedKeys) {
+        [result addObject:_shapeFrameCombos[key]];
+    }
+    
+    return result;
 }
 
 - (void)dealloc

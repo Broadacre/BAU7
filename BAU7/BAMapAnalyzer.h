@@ -16,4 +16,7 @@
 - (NSDictionary *)exportPatterns;
 - (NSDictionary *)exportPatternsForVisualization:(BOOL)includeTerrainGrid;
 
+// Terrain classifier support
+- (NSArray *)getUnknownShapeFrameCombos; // Returns array of {shape, frame, count, exampleChunk}
+
 @end

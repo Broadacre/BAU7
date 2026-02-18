@@ -18,6 +18,9 @@
     self.view.backgroundColor = [UIColor systemBackgroundColor];
     self.title = @"Map Analyzer";
     
+    // Load terrain mappings
+    [self loadTerrainMappings];
+    
     // Heat map scroll view (left side)
     _heatMapScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
     _heatMapScrollView.backgroundColor = [UIColor blackColor];
@@ -46,13 +49,69 @@
     _heatMapImageView.frame = CGRectMake(0, 0, 512, 512);
     _heatMapScrollView.contentSize = CGSizeMake(512, 512);
     
-    // Results text view (right side)
+    // RIGHT SIDE PANEL (classifier + results)
+    _classifierPanel = [[UIView alloc] initWithFrame:CGRectZero];
+    _classifierPanel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:_classifierPanel];
+    
+    // Chunk preview (shows 16×16 tiles)
+    _chunkPreviewView = [[UIImageView alloc] initWithFrame:CGRectZero];
+    _chunkPreviewView.backgroundColor = [UIColor blackColor];
+    _chunkPreviewView.contentMode = UIViewContentModeScaleAspectFit;
+    _chunkPreviewView.translatesAutoresizingMaskIntoConstraints = NO;
+    [_classifierPanel addSubview:_chunkPreviewView];
+    
+    // Shape info label
+    _shapeInfoLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    _shapeInfoLabel.font = [UIFont boldSystemFontOfSize:14];
+    _shapeInfoLabel.numberOfLines = 0;
+    _shapeInfoLabel.text = @"Awaiting analysis...";
+    _shapeInfoLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [_classifierPanel addSubview:_shapeInfoLabel];
+    
+    // Progress label
+    _progressLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    _progressLabel.font = [UIFont systemFontOfSize:12];
+    _progressLabel.textColor = [UIColor secondaryLabelColor];
+    _progressLabel.text = @"";
+    _progressLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [_classifierPanel addSubview:_progressLabel];
+    
+    // Terrain classification buttons (2 rows of 4)
+    NSArray *terrainTypes = @[@"Water", @"Grass", @"Mountain", @"Forest",
+                              @"Swamp", @"Desert", @"Barren", @"Other"];
+    CGFloat buttonWidth = 80;
+    CGFloat buttonHeight = 40;
+    CGFloat spacing = 10;
+    
+    for (int i = 0; i < 8; i++) {
+        UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
+        [btn setTitle:terrainTypes[i] forState:UIControlStateNormal];
+        btn.tag = i + 1; // TerrainType enum values
+        [btn addTarget:self action:@selector(classifyTerrain:) forControlEvents:UIControlEventTouchUpInside];
+        btn.translatesAutoresizingMaskIntoConstraints = NO;
+        [_classifierPanel addSubview:btn];
+        
+        int row = i / 4;
+        int col = i % 4;
+        
+        [NSLayoutConstraint activateConstraints:@[
+            [btn.widthAnchor constraintEqualToConstant:buttonWidth],
+            [btn.heightAnchor constraintEqualToConstant:buttonHeight],
+            [btn.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor 
+                                              constant:(10 + col * (buttonWidth + spacing))],
+            [btn.topAnchor constraintEqualToAnchor:_progressLabel.bottomAnchor 
+                                           constant:(10 + row * (buttonHeight + spacing))]
+        ]];
+    }
+    
+    // Results text view (below classifier)
     _resultsTextView = [[UITextView alloc] initWithFrame:CGRectZero];
     _resultsTextView.editable = NO;
     _resultsTextView.font = [UIFont fontWithName:@"Menlo" size:11];
     _resultsTextView.text = @"Tap 'Analyze Map' to scan the Ultima VII world and generate a heat map...\n";
     _resultsTextView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:_resultsTextView];
+    [_classifierPanel addSubview:_resultsTextView];
     
     // Analyze button
     _analyzeButton = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -90,11 +149,33 @@
         [_heatMapScrollView.widthAnchor constraintEqualToAnchor:self.view.widthAnchor multiplier:0.5],
         [_heatMapScrollView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor],
         
-        // Results text on right half
-        [_resultsTextView.topAnchor constraintEqualToAnchor:_analyzeButton.bottomAnchor constant:10],
-        [_resultsTextView.leadingAnchor constraintEqualToAnchor:_heatMapScrollView.trailingAnchor constant:10],
-        [_resultsTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-10],
-        [_resultsTextView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10],
+        // Classifier panel on right half
+        [_classifierPanel.topAnchor constraintEqualToAnchor:_analyzeButton.bottomAnchor constant:10],
+        [_classifierPanel.leadingAnchor constraintEqualToAnchor:_heatMapScrollView.trailingAnchor constant:10],
+        [_classifierPanel.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-10],
+        [_classifierPanel.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10],
+        
+        // Chunk preview at top of classifier panel
+        [_chunkPreviewView.topAnchor constraintEqualToAnchor:_classifierPanel.topAnchor],
+        [_chunkPreviewView.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
+        [_chunkPreviewView.widthAnchor constraintEqualToConstant:256], // 16 tiles * 16 pixels
+        [_chunkPreviewView.heightAnchor constraintEqualToConstant:256],
+        
+        // Shape info below preview
+        [_shapeInfoLabel.topAnchor constraintEqualToAnchor:_chunkPreviewView.bottomAnchor constant:10],
+        [_shapeInfoLabel.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
+        [_shapeInfoLabel.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
+        
+        // Progress label below shape info
+        [_progressLabel.topAnchor constraintEqualToAnchor:_shapeInfoLabel.bottomAnchor constant:5],
+        [_progressLabel.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
+        [_progressLabel.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
+        
+        // Results text at bottom (buttons are positioned relative to progressLabel in loop above)
+        [_resultsTextView.topAnchor constraintEqualToAnchor:_progressLabel.bottomAnchor constant:120], // Space for 2 rows of buttons
+        [_resultsTextView.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
+        [_resultsTextView.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
+        [_resultsTextView.bottomAnchor constraintEqualToAnchor:_classifierPanel.bottomAnchor],
         
         [_activityIndicator.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
         [_activityIndicator.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor]
@@ -137,6 +218,9 @@
         // Get patterns WITHOUT terrain grid for JSON export
         NSDictionary *patternsForJSON = [analyzer exportPatternsForVisualization:NO];
         
+        // Get unknown shape:frame combos for classifier
+        NSArray *allCombos = [analyzer getUnknownShapeFrameCombos];
+        
         // Generate heat map
         UIImage *heatMap = [self generateHeatMapFromPatterns:patternsWithGrid];
         
@@ -154,6 +238,11 @@
             self.heatMapScrollView.zoomScale = 1.0;
             
             self.resultsTextView.accessibilityValue = [self JSONStringFromDictionary:self.analysisResults];
+            
+            // Start terrain classifier
+            self.unknownCombos = allCombos;
+            self.currentComboIndex = 0;
+            [self loadNextCombo];
         });
     });
 }
@@ -352,6 +441,183 @@
     }
     
     return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+}
+
+#pragma mark - Terrain Classifier
+
+- (void)loadTerrainMappings
+{
+    _terrainMappings = [NSMutableDictionary dictionary];
+    
+    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
+    
+    if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+        NSData *data = [NSData dataWithContentsOfFile:filePath];
+        NSError *error = nil;
+        NSDictionary *loaded = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+        if (!error && loaded) {
+            [_terrainMappings addEntriesFromDictionary:loaded];
+            NSLog(@"Loaded %lu terrain mappings from %@", (unsigned long)[_terrainMappings count], filePath);
+        }
+    }
+}
+
+- (void)saveTerrainMappings
+{
+    NSString *docsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *filePath = [docsPath stringByAppendingPathComponent:@"TerrainMapping.json"];
+    
+    NSError *error = nil;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:_terrainMappings
+                                                       options:NSJSONWritingPrettyPrinted
+                                                         error:&error];
+    if (!error) {
+        [jsonData writeToFile:filePath atomically:YES];
+        NSLog(@"Saved %lu terrain mappings to %@", (unsigned long)[_terrainMappings count], filePath);
+    }
+}
+
+- (void)classifyTerrain:(UIButton *)sender
+{
+    if (_currentComboIndex >= [_unknownCombos count]) {
+        return; // No more combos
+    }
+    
+    NSDictionary *combo = _unknownCombos[_currentComboIndex];
+    NSString *key = [NSString stringWithFormat:@"%@:%@", combo[@"shape"], combo[@"frame"]];
+    
+    // Map button tag to terrain type name
+    NSArray *terrainNames = @[@"other", @"water", @"grass", @"mountains", @"forest", 
+                              @"swamp", @"desert", @"barren"];
+    NSString *terrainType = terrainNames[sender.tag];
+    
+    // Save mapping
+    _terrainMappings[key] = terrainType;
+    [self saveTerrainMappings];
+    
+    NSLog(@"Classified %@ as %@", key, terrainType);
+    
+    // Move to next combo
+    _currentComboIndex++;
+    [self loadNextCombo];
+}
+
+- (void)loadNextCombo
+{
+    if (_currentComboIndex >= [_unknownCombos count]) {
+        _shapeInfoLabel.text = @"All combos classified!";
+        _progressLabel.text = @"";
+        _chunkPreviewView.image = nil;
+        return;
+    }
+    
+    NSDictionary *combo = _unknownCombos[_currentComboIndex];
+    long shapeID = [combo[@"shape"] longValue];
+    int frameID = [combo[@"frame"] intValue];
+    int count = [combo[@"count"] intValue];
+    
+    _shapeInfoLabel.text = [NSString stringWithFormat:@"Shape %ld : Frame %d\n%d occurrences", 
+                            shapeID, frameID, count];
+    _progressLabel.text = [NSString stringWithFormat:@"%ld of %lu combos", 
+                          _currentComboIndex + 1, (unsigned long)[_unknownCombos count]];
+    
+    // Render chunk preview with highlighted tile
+    NSDictionary *exampleChunk = combo[@"exampleChunk"];
+    int chunkX = [exampleChunk[@"x"] intValue];
+    int chunkY = [exampleChunk[@"y"] intValue];
+    int tileIndex = [exampleChunk[@"tileIndex"] intValue];
+    
+    UIImage *preview = [self renderChunkAtX:chunkX y:chunkY highlightTile:tileIndex];
+    _chunkPreviewView.image = preview;
+}
+
+- (UIImage *)renderChunkAtX:(int)chunkX y:(int)chunkY highlightTile:(int)tileIndex
+{
+    U7Environment *env = u7Env;
+    U7Map *map = env->Map;
+    
+    if (!map) {
+        return nil;
+    }
+    
+    long chunkIndex = [map chunkIDForChunkCoordinate:CGPointMake(chunkX, chunkY)];
+    U7MapChunk *mapChunk = [map mapChunkAtIndex:chunkIndex];
+    
+    if (!mapChunk || !mapChunk->masterChunk) {
+        return nil;
+    }
+    
+    int tileSize = 16; // pixels per tile
+    int chunkSize = 16; // tiles per chunk
+    int imageSize = tileSize * chunkSize; // 256x256
+    
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(imageSize, imageSize), YES, 1.0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    
+    // Black background
+    [[UIColor blackColor] setFill];
+    CGContextFillRect(ctx, CGRectMake(0, 0, imageSize, imageSize));
+    
+    U7Chunk *chunk = mapChunk->masterChunk;
+    
+    // Render each tile
+    for (int tileY = 0; tileY < chunkSize; tileY++) {
+        for (int tileX = 0; tileX < chunkSize; tileX++) {
+            int idx = tileY * chunkSize + tileX;
+            
+            if (idx >= [chunk->chunkMap count]) continue;
+            
+            U7ChunkIndex *chunkIdx = chunk->chunkMap[idx];
+            long shapeID = chunkIdx->shapeIndex;
+            int frameID = chunkIdx->frameIndex;
+            
+            // Get tile image from U7 shapes
+            UIImage *tileImage = [self getTileImageForShape:shapeID frame:frameID];
+            
+            if (tileImage) {
+                CGRect destRect = CGRectMake(tileX * tileSize, tileY * tileSize, tileSize, tileSize);
+                [tileImage drawInRect:destRect];
+            }
+            
+            // Highlight the tile we're classifying
+            if (idx == tileIndex) {
+                [[UIColor redColor] setStroke];
+                CGContextSetLineWidth(ctx, 2.0);
+                CGRect highlightRect = CGRectMake(tileX * tileSize, tileY * tileSize, tileSize, tileSize);
+                CGContextStrokeRect(ctx, highlightRect);
+            }
+        }
+    }
+    
+    UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return result;
+}
+
+- (UIImage *)getTileImageForShape:(long)shapeID frame:(int)frameID
+{
+    U7Environment *env = u7Env;
+    
+    if (!env || !env->ShapeManager) {
+        return nil;
+    }
+    
+    // Get shape from U7 shape manager
+    U7Shape *shape = [env->ShapeManager->shapeTable getShapeAtTableID:shapeID];
+    
+    if (!shape || frameID >= [shape->frames count]) {
+        return nil;
+    }
+    
+    U7ShapeFrame *frame = shape->frames[frameID];
+    
+    if (!frame || !frame->image) {
+        return nil;
+    }
+    
+    return frame->image;
 }
 
 @end

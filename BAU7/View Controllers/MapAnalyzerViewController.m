@@ -122,15 +122,16 @@
     _resultsTextView = [[UITextView alloc] initWithFrame:CGRectZero];
     _resultsTextView.editable = NO;
     _resultsTextView.font = [UIFont fontWithName:@"Menlo" size:11];
-    _resultsTextView.text = @"Tap 'Analyze Map' to scan the Ultima VII world and generate a heat map...\n";
+    _resultsTextView.text = @"Loading classifications and analyzing map...\n";
     _resultsTextView.translatesAutoresizingMaskIntoConstraints = NO;
     [_classifierPanel addSubview:_resultsTextView];
     
-    // Analyze button
+    // Analyze button (disabled - auto-runs on viewDidAppear)
     _analyzeButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [_analyzeButton setTitle:@"Analyze Map" forState:UIControlStateNormal];
     [_analyzeButton addTarget:self action:@selector(analyzeMap:) forControlEvents:UIControlEventTouchUpInside];
     _analyzeButton.translatesAutoresizingMaskIntoConstraints = NO;
+    _analyzeButton.hidden = YES; // Auto-runs, no need for button
     [self.view addSubview:_analyzeButton];
     
     // Export button
@@ -222,7 +223,7 @@
 {
     [super viewDidAppear:animated];
     
-    // Load existing classifications from API
+    // Load existing classifications from API, then auto-start analysis
     [self loadClassificationsFromAPI];
 }
 
@@ -238,6 +239,10 @@
         
         if (error) {
             NSLog(@"❌ API load error: %@", error.localizedDescription);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                // Still start analysis even if API fails
+                [self analyzeMap:nil];
+            });
             return;
         }
         
@@ -246,11 +251,19 @@
         
         if (jsonError) {
             NSLog(@"❌ JSON parse error: %@", jsonError.localizedDescription);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                // Still start analysis even if parse fails
+                [self analyzeMap:nil];
+            });
             return;
         }
         
         if (![json[@"success"] boolValue]) {
             NSLog(@"❌ API returned error: %@", json[@"error"]);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                // Still start analysis even if API returns error
+                [self analyzeMap:nil];
+            });
             return;
         }
         
@@ -271,13 +284,13 @@
             if ([chunks count] > 0) {
                 NSString *status = [NSString stringWithFormat:
                     @"Loaded %lu existing classifications from database\n\n"
-                    @"Press 'Analyze Map' to continue classifying",
+                    @"Starting map analysis...",
                     (unsigned long)[chunks count]];
                 self.resultsTextView.text = status;
-                
-                // If we have a heat map, update it with loaded classifications
-                [self updateHeatMapWithClassifications];
             }
+            
+            // Auto-start map analysis now that classifications are loaded
+            [self analyzeMap:nil];
         });
     }];
     

@@ -317,9 +317,6 @@
 
 - (UIImage *)draw3x3ChunkGridAtX:(int)centerX Y:(int)centerY
 {
-    U7Environment *env = u7Env;
-    U7Map *map = env->Map;
-    
     int gridSize = 3;
     int chunkPixelSize = 48; // 16 tiles × 3px each
     int totalSize = gridSize * chunkPixelSize;
@@ -338,15 +335,15 @@
             
             if (x < 0 || x >= 192 || y < 0 || y >= 192) continue;
             
-            U7MapChunk *chunk = [map->mapArray getChunkAt:CGPointMake(x, y)];
-            if (chunk) {
-                UIImage *chunkImage = [BAU7BitmapInterpreter chunkBitmapFrom:chunk withPixelSize:3];
-                
+            // Render chunk at full size (256x256), then scale down to 48x48
+            UIImage *fullChunk = [self renderChunkAtX:x y:y highlightTile:-1];
+            
+            if (fullChunk) {
                 CGRect destRect = CGRectMake((dx + 1) * chunkPixelSize,
                                             (dy + 1) * chunkPixelSize,
                                             chunkPixelSize,
                                             chunkPixelSize);
-                [chunkImage drawInRect:destRect];
+                [fullChunk drawInRect:destRect];
                 
                 // Red border on center chunk
                 if (dx == 0 && dy == 0) {

@@ -314,6 +314,10 @@
                            (long)(_currentChunkIndex + 1),
                            (unsigned long)[_sortedMasterChunkIDs count]];
     
+    // Render single chunk preview (full size with all shapes/objects)
+    UIImage *chunkImage = [self renderChunkAtX:exampleX y:exampleY highlightTile:-1];
+    _chunkPreviewView.image = chunkImage;
+    
     // Draw 3×3 chunk grid
     UIImage *gridImage = [self draw3x3ChunkGridAtX:exampleX Y:exampleY];
     _chunkGridView.image = gridImage;
@@ -829,7 +833,7 @@
     
     U7Chunk *chunk = mapChunk->masterChunk;
     
-    // Render each tile
+    // LAYER 1: Render base terrain tiles
     for (int tileY = 0; tileY < chunkSize; tileY++) {
         for (int tileX = 0; tileX < chunkSize; tileX++) {
             int idx = tileY * chunkSize + tileX;
@@ -854,6 +858,28 @@
                 CGContextSetLineWidth(ctx, 2.0);
                 CGRect highlightRect = CGRectMake(tileX * tileSize, tileY * tileSize, tileSize, tileSize);
                 CGContextStrokeRect(ctx, highlightRect);
+            }
+        }
+    }
+    
+    // LAYER 2: Render ground objects (floor items)
+    if (mapChunk->groundObjects) {
+        for (U7ShapeReference *shapeRef in mapChunk->groundObjects) {
+            UIImage *objImage = [self getTileImageForShape:shapeRef->shapeID frame:shapeRef->frameNumber];
+            if (objImage) {
+                CGRect destRect = CGRectMake(shapeRef->xloc * tileSize, shapeRef->yloc * tileSize, tileSize, tileSize);
+                [objImage drawInRect:destRect];
+            }
+        }
+    }
+    
+    // LAYER 3: Render static objects (buildings, trees, mountains, etc.)
+    if (mapChunk->staticItems) {
+        for (U7ShapeReference *shapeRef in mapChunk->staticItems) {
+            UIImage *objImage = [self getTileImageForShape:shapeRef->shapeID frame:shapeRef->frameNumber];
+            if (objImage) {
+                CGRect destRect = CGRectMake(shapeRef->xloc * tileSize, shapeRef->yloc * tileSize, tileSize, tileSize);
+                [objImage drawInRect:destRect];
             }
         }
     }

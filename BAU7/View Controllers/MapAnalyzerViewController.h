@@ -21,6 +21,7 @@
 
 // Chunk classifier UI
 @property (nonatomic, strong) UIView *classifierPanel;
+@property (nonatomic, strong) UIImageView *chunkPreviewView; // Single chunk preview
 @property (nonatomic, strong) UIImageView *chunkGridView;  // 3×3 chunk context grid
 @property (nonatomic, strong) UILabel *chunkInfoLabel;
 @property (nonatomic, strong) UILabel *progressLabel;
@@ -28,5 +29,10 @@
 @property (nonatomic, strong) NSMutableDictionary *masterChunkHistogram; // masterChunkID → {count, exampleX, exampleY}
 @property (nonatomic, strong) NSArray *sortedMasterChunkIDs; // sorted by occurrence count
 @property (nonatomic, assign) NSInteger currentChunkIndex;
+
+// Old terrain mapping system (still used by export/load methods)
+@property (nonatomic, strong) NSMutableDictionary *terrainMappings;
+@property (nonatomic, strong) NSArray *unknownCombos;
+@property (nonatomic, assign) NSInteger currentComboIndex;
 
 @end

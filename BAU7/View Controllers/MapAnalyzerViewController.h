@@ -19,14 +19,14 @@
 @property (nonatomic, strong) UIActivityIndicatorView *activityIndicator;
 @property (nonatomic, strong) NSDictionary *analysisResults;
 
-// Terrain classifier UI
+// Chunk classifier UI
 @property (nonatomic, strong) UIView *classifierPanel;
-@property (nonatomic, strong) UIImageView *chunkPreviewView;
-@property (nonatomic, strong) UIImageView *enlargedTileView;
-@property (nonatomic, strong) UILabel *shapeInfoLabel;
+@property (nonatomic, strong) UIImageView *chunkGridView;  // 3×3 chunk context grid
+@property (nonatomic, strong) UILabel *chunkInfoLabel;
 @property (nonatomic, strong) UILabel *progressLabel;
-@property (nonatomic, strong) NSMutableDictionary *terrainMappings;
-@property (nonatomic, strong) NSArray *unknownCombos;
-@property (nonatomic, assign) NSInteger currentComboIndex;
+@property (nonatomic, strong) NSMutableDictionary *chunkClassifications; // masterChunkID → terrain category
+@property (nonatomic, strong) NSMutableDictionary *masterChunkHistogram; // masterChunkID → {count, exampleX, exampleY}
+@property (nonatomic, strong) NSArray *sortedMasterChunkIDs; // sorted by occurrence count
+@property (nonatomic, assign) NSInteger currentChunkIndex;
 
 @end

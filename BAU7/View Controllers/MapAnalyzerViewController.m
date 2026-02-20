@@ -18,8 +18,11 @@
     self.view.backgroundColor = [UIColor systemBackgroundColor];
     self.title = @"Map Analyzer";
     
-    // Load terrain mappings
-    [self loadTerrainMappings];
+    // Initialize chunk classification dictionaries
+    _chunkClassifications = [NSMutableDictionary dictionary];
+    _masterChunkHistogram = [NSMutableDictionary dictionary];
+    _sortedMasterChunkIDs = @[];
+    _currentChunkIndex = 0;
     
     // Heat map scroll view (left side)
     _heatMapScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
@@ -61,22 +64,22 @@
     _chunkPreviewView.translatesAutoresizingMaskIntoConstraints = NO;
     [_classifierPanel addSubview:_chunkPreviewView];
     
-    // Enlarged tile preview (3x scale)
-    _enlargedTileView = [[UIImageView alloc] initWithFrame:CGRectZero];
-    _enlargedTileView.backgroundColor = [UIColor darkGrayColor];
-    _enlargedTileView.contentMode = UIViewContentModeScaleAspectFit;
-    _enlargedTileView.layer.borderColor = [UIColor whiteColor].CGColor;
-    _enlargedTileView.layer.borderWidth = 2.0;
-    _enlargedTileView.translatesAutoresizingMaskIntoConstraints = NO;
-    [_classifierPanel addSubview:_enlargedTileView];
+    // 3×3 chunk grid (context view)
+    _chunkGridView = [[UIImageView alloc] initWithFrame:CGRectZero];
+    _chunkGridView.backgroundColor = [UIColor darkGrayColor];
+    _chunkGridView.contentMode = UIViewContentModeScaleAspectFit;
+    _chunkGridView.layer.borderColor = [UIColor whiteColor].CGColor;
+    _chunkGridView.layer.borderWidth = 2.0;
+    _chunkGridView.translatesAutoresizingMaskIntoConstraints = NO;
+    [_classifierPanel addSubview:_chunkGridView];
     
-    // Shape info label
-    _shapeInfoLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-    _shapeInfoLabel.font = [UIFont boldSystemFontOfSize:14];
-    _shapeInfoLabel.numberOfLines = 0;
-    _shapeInfoLabel.text = @"Awaiting analysis...";
-    _shapeInfoLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    [_classifierPanel addSubview:_shapeInfoLabel];
+    // Chunk info label
+    _chunkInfoLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    _chunkInfoLabel.font = [UIFont boldSystemFontOfSize:14];
+    _chunkInfoLabel.numberOfLines = 0;
+    _chunkInfoLabel.text = @"Awaiting analysis...";
+    _chunkInfoLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [_classifierPanel addSubview:_chunkInfoLabel];
     
     // Progress label
     _progressLabel = [[UILabel alloc] initWithFrame:CGRectZero];
@@ -86,23 +89,24 @@
     _progressLabel.translatesAutoresizingMaskIntoConstraints = NO;
     [_classifierPanel addSubview:_progressLabel];
     
-    // Terrain classification buttons (2 rows of 4)
-    NSArray *terrainTypes = @[@"Water", @"Grass", @"Mountain", @"Forest",
-                              @"Swamp", @"Sand", @"Dirt", @"Other"];
+    // Chunk classification buttons (3 rows of 3)
+    NSArray *chunkTypes = @[@"Water", @"Grass", @"Mountain", 
+                            @"Forest", @"Swamp", @"Sand", 
+                            @"Dirt", @"Mixed", @"Other"];
     CGFloat buttonWidth = 80;
     CGFloat buttonHeight = 40;
     CGFloat spacing = 10;
     
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 9; i++) {
         UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
-        [btn setTitle:terrainTypes[i] forState:UIControlStateNormal];
-        btn.tag = i + 1; // TerrainType enum values
-        [btn addTarget:self action:@selector(classifyTerrain:) forControlEvents:UIControlEventTouchUpInside];
+        [btn setTitle:chunkTypes[i] forState:UIControlStateNormal];
+        btn.tag = i + 1; // Category index
+        [btn addTarget:self action:@selector(classifyChunk:) forControlEvents:UIControlEventTouchUpInside];
         btn.translatesAutoresizingMaskIntoConstraints = NO;
         [_classifierPanel addSubview:btn];
         
-        int row = i / 4;
-        int col = i % 4;
+        int row = i / 3;
+        int col = i % 3;
         
         [NSLayoutConstraint activateConstraints:@[
             [btn.widthAnchor constraintEqualToConstant:buttonWidth],
@@ -180,19 +184,19 @@
         [_chunkPreviewView.widthAnchor constraintEqualToConstant:256], // 16 tiles * 16 pixels
         [_chunkPreviewView.heightAnchor constraintEqualToConstant:256],
         
-        // Enlarged tile to the right of chunk preview
-        [_enlargedTileView.topAnchor constraintEqualToAnchor:_classifierPanel.topAnchor],
-        [_enlargedTileView.leadingAnchor constraintEqualToAnchor:_chunkPreviewView.trailingAnchor constant:10],
-        [_enlargedTileView.widthAnchor constraintEqualToConstant:48], // 16 pixels * 3
-        [_enlargedTileView.heightAnchor constraintEqualToConstant:48],
+        // 3×3 chunk grid below chunk preview
+        [_chunkGridView.topAnchor constraintEqualToAnchor:_chunkPreviewView.bottomAnchor constant:10],
+        [_chunkGridView.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
+        [_chunkGridView.widthAnchor constraintEqualToConstant:144], // 3 chunks × 16 tiles × 3px
+        [_chunkGridView.heightAnchor constraintEqualToConstant:144],
         
-        // Shape info below preview
-        [_shapeInfoLabel.topAnchor constraintEqualToAnchor:_chunkPreviewView.bottomAnchor constant:10],
-        [_shapeInfoLabel.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
-        [_shapeInfoLabel.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
+        // Chunk info below grid
+        [_chunkInfoLabel.topAnchor constraintEqualToAnchor:_chunkGridView.bottomAnchor constant:10],
+        [_chunkInfoLabel.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
+        [_chunkInfoLabel.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
         
-        // Progress label below shape info
-        [_progressLabel.topAnchor constraintEqualToAnchor:_shapeInfoLabel.bottomAnchor constant:5],
+        // Progress label below chunk info
+        [_progressLabel.topAnchor constraintEqualToAnchor:_chunkInfoLabel.bottomAnchor constant:5],
         [_progressLabel.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
         [_progressLabel.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
         
@@ -216,7 +220,7 @@
 {
     [_activityIndicator startAnimating];
     _analyzeButton.enabled = NO;
-    _resultsTextView.text = @"Loading Ultima VII map...\n";
+    _resultsTextView.text = @"Scanning chunks...\n";
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         
@@ -232,58 +236,132 @@
             return;
         }
         
-        BAMapAnalyzer *analyzer = [[BAMapAnalyzer alloc] initWithMap:map];
-        [analyzer analyze];
+        // Build masterChunkID histogram
+        NSMutableDictionary *histogram = [NSMutableDictionary dictionary];
         
-        NSString *results = [analyzer getResultsText];
-        
-        // Get patterns WITH terrain grid for visualization
-        NSDictionary *patternsWithGrid = [analyzer exportPatternsForVisualization:YES];
-        
-        // Get patterns WITHOUT terrain grid for JSON export
-        NSDictionary *patternsForJSON = [analyzer exportPatternsForVisualization:NO];
-        
-        // Get unknown shape:frame combos for classifier
-        NSArray *allCombos = [analyzer getUnknownShapeFrameCombos];
-        
-        // Filter out already-classified combos
-        NSMutableArray *unclassifiedCombos = [NSMutableArray array];
-        for (NSDictionary *combo in allCombos) {
-            NSString *key = [NSString stringWithFormat:@"%@:%@", combo[@"shape"], combo[@"frame"]];
-            if (!self.terrainMappings[key]) {
-                [unclassifiedCombos addObject:combo];
+        for (int y = 0; y < 192; y++) {
+            for (int x = 0; x < 192; x++) {
+                U7MapChunk *chunk = [map->mapArray getChunkAt:CGPointMake(x, y)];
+                if (chunk && chunk.masterChunk) {
+                    NSNumber *chunkID = @(chunk.masterChunkID);
+                    
+                    NSMutableDictionary *entry = histogram[chunkID];
+                    if (!entry) {
+                        entry = [@{
+                            @"count": @(0),
+                            @"exampleX": @(x),
+                            @"exampleY": @(y)
+                        } mutableCopy];
+                        histogram[chunkID] = entry;
+                    }
+                    
+                    entry[@"count"] = @([entry[@"count"] intValue] + 1);
+                }
             }
         }
         
-        NSLog(@"Total combos: %lu, Already classified: %lu, Remaining: %lu",
-              (unsigned long)[allCombos count],
-              (unsigned long)([allCombos count] - [unclassifiedCombos count]),
-              (unsigned long)[unclassifiedCombos count]);
-        
-        // Generate heat map
-        UIImage *heatMap = [self generateHeatMapFromPatterns:patternsWithGrid];
+        // Sort by occurrence count (descending)
+        NSArray *sortedIDs = [histogram keysSortedByValueUsingComparator:^NSComparisonResult(id obj1, id obj2) {
+            int count1 = [obj1[@"count"] intValue];
+            int count2 = [obj2[@"count"] intValue];
+            return count2 - count1;
+        }];
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.resultsTextView.text = results;
-            self.analysisResults = patternsForJSON;
-            self->_exportButton.enabled = YES;
+            self->_masterChunkHistogram = histogram;
+            self->_sortedMasterChunkIDs = sortedIDs;
+            self->_currentChunkIndex = 0;
+            
+            NSString *stats = [NSString stringWithFormat:
+                @"Found %lu unique masterChunk patterns\n"
+                @"Most common: ID %@ (%@ occurrences)\n\n"
+                @"Ready to classify!",
+                (unsigned long)[sortedIDs count],
+                sortedIDs[0],
+                histogram[sortedIDs[0]][@"count"]
+            ];
+            
+            self.resultsTextView.text = stats;
+            [self displayCurrentChunk];
             [self->_activityIndicator stopAnimating];
             self->_analyzeButton.enabled = YES;
-            
-            // Display heat map
-            self.heatMapImageView.image = heatMap;
-            self.heatMapImageView.frame = CGRectMake(0, 0, heatMap.size.width, heatMap.size.height);
-            self.heatMapScrollView.contentSize = heatMap.size;
-            self.heatMapScrollView.zoomScale = 1.0;
-            
-            self.resultsTextView.accessibilityValue = [self JSONStringFromDictionary:self.analysisResults];
-            
-            // Start terrain classifier with unclassified combos only
-            self.unknownCombos = unclassifiedCombos;
-            self.currentComboIndex = 0;
-            [self loadNextCombo];
         });
     });
+}
+
+- (void)displayCurrentChunk
+{
+    if (_currentChunkIndex >= [_sortedMasterChunkIDs count]) {
+        _chunkInfoLabel.text = @"✅ All chunks classified!";
+        _progressLabel.text = @"";
+        _chunkGridView.image = nil;
+        return;
+    }
+    
+    NSNumber *masterChunkID = _sortedMasterChunkIDs[_currentChunkIndex];
+    NSDictionary *entry = _masterChunkHistogram[masterChunkID];
+    int exampleX = [entry[@"exampleX"] intValue];
+    int exampleY = [entry[@"exampleY"] intValue];
+    int count = [entry[@"count"] intValue];
+    
+    // Update labels
+    _chunkInfoLabel.text = [NSString stringWithFormat:@"MasterChunk %@ (%d occurrences)", masterChunkID, count];
+    _progressLabel.text = [NSString stringWithFormat:@"%ld of %lu unique patterns", 
+                           (long)(_currentChunkIndex + 1),
+                           (unsigned long)[_sortedMasterChunkIDs count]];
+    
+    // Draw 3×3 chunk grid
+    UIImage *gridImage = [self draw3x3ChunkGridAtX:exampleX Y:exampleY];
+    _chunkGridView.image = gridImage;
+}
+
+- (UIImage *)draw3x3ChunkGridAtX:(int)centerX Y:(int)centerY
+{
+    U7Environment *env = u7Env;
+    U7Map *map = env->Map;
+    
+    int gridSize = 3;
+    int chunkPixelSize = 48; // 16 tiles × 3px each
+    int totalSize = gridSize * chunkPixelSize;
+    
+    UIGraphicsBeginImageContext(CGSizeMake(totalSize, totalSize));
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    
+    // Black background
+    [[UIColor blackColor] setFill];
+    CGContextFillRect(ctx, CGRectMake(0, 0, totalSize, totalSize));
+    
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            int x = centerX + dx;
+            int y = centerY + dy;
+            
+            if (x < 0 || x >= 192 || y < 0 || y >= 192) continue;
+            
+            U7MapChunk *chunk = [map->mapArray getChunkAt:CGPointMake(x, y)];
+            if (chunk) {
+                UIImage *chunkImage = [BAU7BitmapInterpreter chunkBitmapFrom:chunk withPixelSize:3];
+                
+                CGRect destRect = CGRectMake((dx + 1) * chunkPixelSize,
+                                            (dy + 1) * chunkPixelSize,
+                                            chunkPixelSize,
+                                            chunkPixelSize);
+                [chunkImage drawInRect:destRect];
+                
+                // Red border on center chunk
+                if (dx == 0 && dy == 0) {
+                    [[UIColor redColor] setStroke];
+                    CGContextSetLineWidth(ctx, 2.0);
+                    CGContextStrokeRect(ctx, destRect);
+                }
+            }
+        }
+    }
+    
+    UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return result;
 }
 
 - (UIImage *)generateHeatMapFromPatterns:(NSDictionary *)patterns
@@ -578,42 +656,36 @@
     }
 }
 
-- (void)classifyTerrain:(UIButton *)sender
+- (void)classifyChunk:(UIButton *)sender
 {
-    if (_currentComboIndex >= [_unknownCombos count]) {
-        NSLog(@"⚠️ No more combos to classify");
-        return; // No more combos
+    if (_currentChunkIndex >= [_sortedMasterChunkIDs count]) {
+        NSLog(@"✅ All chunks classified!");
+        return;
     }
     
-    NSDictionary *combo = _unknownCombos[_currentComboIndex];
-    NSString *key = [NSString stringWithFormat:@"%@:%@", combo[@"shape"], combo[@"frame"]];
+    NSArray *categories = @[@"Water", @"Grass", @"Mountain", @"Forest", 
+                           @"Swamp", @"Sand", @"Dirt", @"Mixed", @"Other"];
     
-    // Map button tag to terrain type name
-    // Tags: Water=1, Grass=2, Mountain=3, Forest=4, Swamp=5, Sand=6, Dirt=7, Other=8
-    NSArray *terrainNames = @[@"other", @"water", @"grass", @"mountains", @"forest", 
-                              @"swamp", @"sand", @"dirt", @"other"];
-    
-    // Bounds check
-    if (sender.tag < 0 || sender.tag >= [terrainNames count]) {
+    if (sender.tag < 1 || sender.tag > [categories count]) {
         NSLog(@"❌ Invalid button tag %ld", (long)sender.tag);
         return;
     }
     
-    NSString *terrainType = terrainNames[sender.tag];
+    NSString *category = categories[sender.tag - 1];
+    NSNumber *masterChunkID = _sortedMasterChunkIDs[_currentChunkIndex];
+    int count = [_masterChunkHistogram[masterChunkID][@"count"] intValue];
     
-    NSLog(@"🏷️ Classifying %@ as %@ (button tag %ld)", key, terrainType, (long)sender.tag);
+    // Save classification
+    _chunkClassifications[masterChunkID] = category;
     
-    // Save mapping
-    _terrainMappings[key] = terrainType;
-    NSLog(@"   Terrain mappings dict now has %lu entries", (unsigned long)[_terrainMappings count]);
+    NSLog(@"✅ Classified masterChunk %@ (%d occurrences) as '%@'", masterChunkID, count, category);
     
-    [self saveTerrainMappings];
+    // Move to next chunk
+    _currentChunkIndex++;
+    [self displayCurrentChunk];
     
-    // Move to next combo
-    _currentComboIndex++;
-    [self loadNextCombo];
+    // TODO: Update heat map to show newly classified chunks
 }
-
 - (void)loadNextCombo
 {
     if (_currentComboIndex >= [_unknownCombos count]) {

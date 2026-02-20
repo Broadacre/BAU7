@@ -286,6 +286,7 @@
             
             self.resultsTextView.text = stats;
             [self displayCurrentChunk];
+            [self updateHeatMapWithClassifications];
             [self->_activityIndicator stopAnimating];
             self->_analyzeButton.enabled = YES;
         });
@@ -317,9 +318,74 @@
     UIImage *gridImage = [self draw3x3ChunkGridAtX:exampleX Y:exampleY];
     _chunkGridView.image = gridImage;
 }
+// Add this method after displayCurrentChunk
+
+- (void)updateHeatMapWithClassifications
+{
+    U7Environment *env = u7Env;
+    U7Map *map = env->Map;
+    
+    if (!map) return;
+    
+    int mapSize = 192; // 192 chunks
+    int pixelScale = 4; // 4 pixels per chunk
+    int imageSize = mapSize * pixelScale;
+    
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(imageSize, imageSize), YES, 1.0);
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    
+    // Color mapping for terrain types
+    NSDictionary *colorMap = @{
+        @"Water":    [UIColor colorWithRed:0.15 green:0.35 blue:0.75 alpha:1.0],
+        @"Grass":    [UIColor colorWithRed:0.2 green:0.7 blue:0.2 alpha:1.0],
+        @"Mountain": [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0],
+        @"Forest":   [UIColor colorWithRed:0.20 green:0.50 blue:0.25 alpha:1.0],
+        @"Swamp":    [UIColor colorWithRed:0.6 green:0.8 blue:0.6 alpha:1.0],
+        @"Sand":     [UIColor colorWithRed:0.82 green:0.71 blue:0.55 alpha:1.0],
+        @"Dirt":     [UIColor colorWithRed:0.55 green:0.35 blue:0.20 alpha:1.0],
+        @"Mixed":    [UIColor colorWithRed:0.5 green:0.5 blue:0.3 alpha:1.0],
+        @"Other":    [UIColor colorWithRed:0.6 green:0.2 blue:0.8 alpha:1.0]
+    };
+    
+    UIColor *unclassifiedColor = [UIColor darkGrayColor];
+    
+    // Render each chunk
+    for (int y = 0; y < mapSize; y++) {
+        for (int x = 0; x < mapSize; x++) {
+            long chunkIndex = [map chunkIDForChunkCoordinate:CGPointMake(x, y)];
+            U7MapChunk *chunk = [map mapChunkAtIndex:chunkIndex];
+            
+            UIColor *color = unclassifiedColor;
+            
+            if (chunk && chunk->masterChunk) {
+                NSNumber *masterChunkID = @(chunk->masterChunkID);
+                NSString *category = _chunkClassifications[masterChunkID];
+                
+                if (category && colorMap[category]) {
+                    color = colorMap[category];
+                }
+            }
+            
+            [color setFill];
+            CGRect pixelRect = CGRectMake(x * pixelScale, y * pixelScale, pixelScale, pixelScale);
+            CGContextFillRect(ctx, pixelRect);
+        }
+    }
+    
+    UIImage *heatMap = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    // Update heat map view
+    _heatMapImageView.image = heatMap;
+    _heatMapImageView.frame = CGRectMake(0, 0, heatMap.size.width, heatMap.size.height);
+    _heatMapScrollView.contentSize = heatMap.size;
+}
+
 
 - (UIImage *)draw3x3ChunkGridAtX:(int)centerX Y:(int)centerY
 {
+    NSLog(@"🎨 Drawing 3×3 grid centered at (%d, %d)", centerX, centerY);
+    
     int gridSize = 3;
     int chunkPixelSize = 48; // 16 tiles × 3px each
     int totalSize = gridSize * chunkPixelSize;
@@ -331,12 +397,17 @@
     [[UIColor blackColor] setFill];
     CGContextFillRect(ctx, CGRectMake(0, 0, totalSize, totalSize));
     
+    int chunksRendered = 0;
+    
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
             int x = centerX + dx;
             int y = centerY + dy;
             
-            if (x < 0 || x >= 192 || y < 0 || y >= 192) continue;
+            if (x < 0 || x >= 192 || y < 0 || y >= 192) {
+                NSLog(@"  ⚠️ Chunk (%d, %d) out of bounds", x, y);
+                continue;
+            }
             
             // Render chunk at full size (256x256), then scale down to 48x48
             UIImage *fullChunk = [self renderChunkAtX:x y:y highlightTile:-1];
@@ -347,6 +418,7 @@
                                             chunkPixelSize,
                                             chunkPixelSize);
                 [fullChunk drawInRect:destRect];
+                chunksRendered++;
                 
                 // Red border on center chunk
                 if (dx == 0 && dy == 0) {
@@ -354,9 +426,13 @@
                     CGContextSetLineWidth(ctx, 2.0);
                     CGContextStrokeRect(ctx, destRect);
                 }
+            } else {
+                NSLog(@"  ❌ Failed to render chunk at (%d, %d)", x, y);
             }
         }
     }
+    
+    NSLog(@"  ✅ Rendered %d/9 chunks", chunksRendered);
     
     UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
@@ -684,7 +760,7 @@
     _currentChunkIndex++;
     [self displayCurrentChunk];
     
-    // TODO: Update heat map to show newly classified chunks
+    [self updateHeatMapWithClassifications];
 }
 - (void)loadNextCombo
 {

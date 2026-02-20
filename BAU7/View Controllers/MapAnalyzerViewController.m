@@ -241,9 +241,12 @@
         
         for (int y = 0; y < 192; y++) {
             for (int x = 0; x < 192; x++) {
-                U7MapChunk *chunk = [map->mapArray getChunkAt:CGPointMake(x, y)];
-                if (chunk && chunk.masterChunk) {
-                    NSNumber *chunkID = @(chunk.masterChunkID);
+                // Use proper U7Map methods from BAU7Objects.h
+                long chunkIndex = [map chunkIDForChunkCoordinate:CGPointMake(x, y)];
+                U7MapChunk *chunk = [map mapChunkAtIndex:chunkIndex];
+                
+                if (chunk && chunk->masterChunk) {
+                    NSNumber *chunkID = @(chunk->masterChunkID);
                     
                     NSMutableDictionary *entry = histogram[chunkID];
                     if (!entry) {

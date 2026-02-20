@@ -685,12 +685,15 @@
 }
 - (void)loadNextCombo
 {
+    // LEGACY METHOD - Not used in chunk-based classification workflow
+    // Kept for compatibility with old terrain mapping export/import
+    
     if (_currentComboIndex >= [_unknownCombos count]) {
-        _shapeInfoLabel.text = [NSString stringWithFormat:@"✅ All combos classified!\n%lu total mappings saved", 
+        _chunkInfoLabel.text = [NSString stringWithFormat:@"✅ All combos classified!\n%lu total mappings saved", 
                                 (unsigned long)[_terrainMappings count]];
         _progressLabel.text = @"TerrainMapping.json is ready to use";
         _chunkPreviewView.image = nil;
-        _enlargedTileView.image = nil;
+        _chunkGridView.image = nil;
         return;
     }
     
@@ -699,7 +702,7 @@
     int frameID = [combo[@"frame"] intValue];
     int count = [combo[@"count"] intValue];
     
-    _shapeInfoLabel.text = [NSString stringWithFormat:@"Shape %ld : Frame %d\n%d occurrences", 
+    _chunkInfoLabel.text = [NSString stringWithFormat:@"Shape %ld : Frame %d\n%d occurrences", 
                             shapeID, frameID, count];
     _progressLabel.text = [NSString stringWithFormat:@"Classifying %ld of %lu unclassified combos\n(%lu already saved)", 
                           _currentComboIndex + 1, (unsigned long)[_unknownCombos count],
@@ -714,19 +717,8 @@
     UIImage *preview = [self renderChunkAtX:chunkX y:chunkY highlightTile:tileIndex];
     _chunkPreviewView.image = preview;
     
-    // Render enlarged version of the specific tile (3x scale)
-    UIImage *tileImage = [self getTileImageForShape:shapeID frame:frameID];
-    if (tileImage) {
-        // Scale up 3x
-        CGSize enlargedSize = CGSizeMake(tileImage.size.width * 3, tileImage.size.height * 3);
-        UIGraphicsBeginImageContextWithOptions(enlargedSize, NO, 1.0);
-        [tileImage drawInRect:CGRectMake(0, 0, enlargedSize.width, enlargedSize.height)];
-        UIImage *enlarged = UIGraphicsGetImageFromCurrentImageContext();
-        UIGraphicsEndImageContext();
-        _enlargedTileView.image = enlarged;
-    } else {
-        _enlargedTileView.image = nil;
-    }
+    // Note: Old enlarged tile view removed, using grid view placeholder
+    _chunkGridView.image = nil;
 }
 
 - (UIImage *)renderChunkAtX:(int)chunkX y:(int)chunkY highlightTile:(int)tileIndex

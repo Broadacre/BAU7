@@ -216,6 +216,127 @@
     return _heatMapImageView;
 }
 
+#pragma mark - API Integration
+
+- (void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    
+    // Load existing classifications from API
+    [self loadClassificationsFromAPI];
+}
+
+- (void)loadClassificationsFromAPI
+{
+    NSLog(@"📡 Loading classifications from API...");
+    
+    NSURL *url = [NSURL URLWithString:@"http://broadacre.org/u7/api.php?action=list&limit=10000"];
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request 
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        
+        if (error) {
+            NSLog(@"❌ API load error: %@", error.localizedDescription);
+            return;
+        }
+        
+        NSError *jsonError;
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+        
+        if (jsonError) {
+            NSLog(@"❌ JSON parse error: %@", jsonError.localizedDescription);
+            return;
+        }
+        
+        if (![json[@"success"] boolValue]) {
+            NSLog(@"❌ API returned error: %@", json[@"error"]);
+            return;
+        }
+        
+        NSArray *chunks = json[@"data"];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // Load classifications into memory
+            for (NSDictionary *chunk in chunks) {
+                NSNumber *masterChunkID = @([chunk[@"master_chunk_id"] intValue]);
+                NSString *terrainType = chunk[@"terrain_type"];
+                
+                self->_chunkClassifications[masterChunkID] = terrainType;
+            }
+            
+            NSLog(@"✅ Loaded %lu classifications from API", (unsigned long)[chunks count]);
+            
+            // Update UI with loaded data
+            if ([chunks count] > 0) {
+                NSString *status = [NSString stringWithFormat:
+                    @"Loaded %lu existing classifications from database\n\n"
+                    @"Press 'Analyze Map' to continue classifying",
+                    (unsigned long)[chunks count]];
+                self.resultsTextView.text = status;
+                
+                // If we have a heat map, update it with loaded classifications
+                [self updateHeatMapWithClassifications];
+            }
+        });
+    }];
+    
+    [task resume];
+}
+
+- (void)saveClassificationToAPI:(NSNumber *)masterChunkID category:(NSString *)category
+{
+    NSLog(@"💾 Saving masterChunk %@ as '%@' to API...", masterChunkID, category);
+    
+    NSURL *url = [NSURL URLWithString:@"http://broadacre.org/u7/api.php"];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    [request setHTTPMethod:@"POST"];
+    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    
+    NSDictionary *payload = @{
+        @"master_chunk_id": masterChunkID,
+        @"terrain_type": category,
+        @"transition_type": [NSNull null]  // Will add transition classification later
+    };
+    
+    NSError *jsonError;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:payload options:0 error:&jsonError];
+    
+    if (jsonError) {
+        NSLog(@"❌ Failed to create JSON: %@", jsonError.localizedDescription);
+        return;
+    }
+    
+    [request setHTTPBody:jsonData];
+    
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request 
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        
+        if (error) {
+            NSLog(@"❌ API save error: %@", error.localizedDescription);
+            return;
+        }
+        
+        NSError *parseError;
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&parseError];
+        
+        if (parseError) {
+            NSLog(@"❌ Response parse error: %@", parseError.localizedDescription);
+            return;
+        }
+        
+        if ([json[@"success"] boolValue]) {
+            NSLog(@"✅ Saved masterChunk %@ to database (ID: %@)", masterChunkID, json[@"id"]);
+        } else {
+            NSLog(@"⚠️ API returned: %@", json[@"error"] ?: json[@"message"]);
+        }
+    }];
+    
+    [task resume];
+}
+
+#pragma mark - Map Analysis
+
 - (void)analyzeMap:(id)sender
 {
     [_activityIndicator startAnimating];
@@ -295,10 +416,15 @@
 
 - (void)displayCurrentChunk
 {
+    // Skip already-classified chunks
+    [self skipAlreadyClassified];
+    
     if (_currentChunkIndex >= [_sortedMasterChunkIDs count]) {
         _chunkInfoLabel.text = @"✅ All chunks classified!";
-        _progressLabel.text = @"";
+        _progressLabel.text = [NSString stringWithFormat:@"%lu total classifications", 
+                               (unsigned long)[_chunkClassifications count]];
         _chunkGridView.image = nil;
+        _chunkPreviewView.image = nil;
         return;
     }
     
@@ -308,11 +434,22 @@
     int exampleY = [entry[@"exampleY"] intValue];
     int count = [entry[@"count"] intValue];
     
+    // Count how many are already classified
+    int classifiedCount = 0;
+    for (NSNumber *chunkID in _sortedMasterChunkIDs) {
+        if (_chunkClassifications[chunkID] != nil) {
+            classifiedCount++;
+        }
+    }
+    
     // Update labels
     _chunkInfoLabel.text = [NSString stringWithFormat:@"MasterChunk %@ (%d occurrences)", masterChunkID, count];
-    _progressLabel.text = [NSString stringWithFormat:@"%ld of %lu unique patterns", 
-                           (long)(_currentChunkIndex + 1),
-                           (unsigned long)[_sortedMasterChunkIDs count]];
+    _progressLabel.text = [NSString stringWithFormat:
+        @"%d of %lu classified · Current: %ld of %lu patterns", 
+        classifiedCount,
+        (unsigned long)[_sortedMasterChunkIDs count],
+        (long)(_currentChunkIndex + 1),
+        (unsigned long)[_sortedMasterChunkIDs count]];
     
     // Render single chunk preview (full size with all shapes/objects)
     UIImage *chunkImage = [self renderChunkAtX:exampleX y:exampleY highlightTile:-1];
@@ -321,6 +458,22 @@
     // Draw 3×3 chunk grid
     UIImage *gridImage = [self draw3x3ChunkGridAtX:exampleX Y:exampleY];
     _chunkGridView.image = gridImage;
+}
+
+- (void)skipAlreadyClassified
+{
+    // Skip forward through already-classified chunks
+    while (_currentChunkIndex < [_sortedMasterChunkIDs count]) {
+        NSNumber *masterChunkID = _sortedMasterChunkIDs[_currentChunkIndex];
+        
+        if (_chunkClassifications[masterChunkID] == nil) {
+            // Found an unclassified chunk
+            break;
+        }
+        
+        // This chunk is already classified, skip it
+        _currentChunkIndex++;
+    }
 }
 // Add this method after displayCurrentChunk
 
@@ -755,13 +908,17 @@
     NSNumber *masterChunkID = _sortedMasterChunkIDs[_currentChunkIndex];
     int count = [_masterChunkHistogram[masterChunkID][@"count"] intValue];
     
-    // Save classification
+    // Save classification locally
     _chunkClassifications[masterChunkID] = category;
+    
+    // Save to API
+    [self saveClassificationToAPI:masterChunkID category:category];
     
     NSLog(@"✅ Classified masterChunk %@ (%d occurrences) as '%@'", masterChunkID, count, category);
     
-    // Move to next chunk
+    // Move to next unclassified chunk
     _currentChunkIndex++;
+    [self skipAlreadyClassified];
     [self displayCurrentChunk];
     
     [self updateHeatMapWithClassifications];
@@ -840,47 +997,67 @@
     }
     
     // STEP 2: Draw ground objects (pass -1: carpets, floor items at lift 0)
+    int groundCount = 0;
     for (int tileY = 0; tileY < chunkSize; tileY++) {
         for (int tileX = 0; tileX < chunkSize; tileX++) {
             U7ShapeReference *groundRef = [mapChunk groundShapeForLocation:CGPointMake(tileX, tileY) forHeight:0];
             if (groundRef) {
+                groundCount++;
                 UIImage *objImage = [self getTileImageForShape:groundRef->shapeID frame:groundRef->frameNumber];
                 if (objImage) {
                     CGRect destRect = CGRectMake(groundRef->xloc * tileSize, groundRef->yloc * tileSize, 
                                                  objImage.size.width, objImage.size.height);
                     [objImage drawInRect:destRect];
+                } else {
+                    NSLog(@"⚠️ Ground shape %ld frame %d has no image", groundRef->shapeID, groundRef->frameNumber);
                 }
             }
         }
     }
+    if (groundCount > 0) {
+        NSLog(@"✅ Drew %d ground objects in chunk (%d, %d)", groundCount, chunkX, chunkY);
+    }
     
     // STEP 3: Draw static objects at all height levels
     // Height 0-15 covers ground level to tall buildings
+    int staticCount = 0;
+    int gameCount = 0;
     for (int pass = 0; pass < 16; pass++) {
         for (int tileY = 0; tileY < chunkSize; tileY++) {
             for (int tileX = 0; tileX < chunkSize; tileX++) {
                 U7ShapeReference *staticRef = [mapChunk staticShapeForLocation:CGPointMake(tileX, tileY) forHeight:pass];
                 if (staticRef) {
+                    staticCount++;
                     UIImage *objImage = [self getTileImageForShape:staticRef->shapeID frame:staticRef->frameNumber];
                     if (objImage) {
                         CGRect destRect = CGRectMake(staticRef->xloc * tileSize, staticRef->yloc * tileSize, 
                                                      objImage.size.width, objImage.size.height);
                         [objImage drawInRect:destRect];
+                    } else {
+                        NSLog(@"⚠️ Static shape %ld frame %d has no image", staticRef->shapeID, staticRef->frameNumber);
                     }
                 }
                 
                 // Also draw game objects at this pass
                 U7ShapeReference *gameRef = [mapChunk gameShapeForLocation:CGPointMake(tileX, tileY) forHeight:pass];
                 if (gameRef) {
+                    gameCount++;
                     UIImage *objImage = [self getTileImageForShape:gameRef->shapeID frame:gameRef->frameNumber];
                     if (objImage) {
                         CGRect destRect = CGRectMake(gameRef->xloc * tileSize, gameRef->yloc * tileSize, 
                                                      objImage.size.width, objImage.size.height);
                         [objImage drawInRect:destRect];
+                    } else {
+                        NSLog(@"⚠️ Game shape %ld frame %d has no image", gameRef->shapeID, gameRef->frameNumber);
                     }
                 }
             }
         }
+    }
+    if (staticCount > 0 || gameCount > 0) {
+        NSLog(@"✅ Drew %d static + %d game objects in chunk (%d, %d)", staticCount, gameCount, chunkX, chunkY);
+    } else {
+        NSLog(@"❌ No static or game objects found in chunk (%d, %d)", chunkX, chunkY);
     }
     
     // STEP 4: Highlight tile if requested (for old terrain classifier)

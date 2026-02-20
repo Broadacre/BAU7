@@ -810,6 +810,7 @@
     U7Map *map = env->Map;
     
     if (!map) {
+        NSLog(@"❌ No map available");
         return nil;
     }
     
@@ -817,6 +818,7 @@
     U7MapChunk *mapChunk = [map mapChunkAtIndex:chunkIndex];
     
     if (!mapChunk || !mapChunk->masterChunk) {
+        NSLog(@"❌ No mapChunk or masterChunk for (%d, %d)", chunkX, chunkY);
         return nil;
     }
     
@@ -827,61 +829,68 @@
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(imageSize, imageSize), YES, 1.0);
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
-    // Black background
-    [[UIColor blackColor] setFill];
-    CGContextFillRect(ctx, CGRectMake(0, 0, imageSize, imageSize));
+    // STEP 1: Draw the base tile image (terrain) - this is pre-rendered by U7
+    U7Chunk *masterChunk = mapChunk->masterChunk;
+    if (masterChunk->tileImage) {
+        [masterChunk->tileImage drawInRect:CGRectMake(0, 0, imageSize, imageSize)];
+    } else {
+        // Fallback: black background if no tile image
+        [[UIColor blackColor] setFill];
+        CGContextFillRect(ctx, CGRectMake(0, 0, imageSize, imageSize));
+    }
     
-    U7Chunk *chunk = mapChunk->masterChunk;
-    
-    // LAYER 1: Render base terrain tiles
+    // STEP 2: Draw ground objects (pass -1: carpets, floor items at lift 0)
     for (int tileY = 0; tileY < chunkSize; tileY++) {
         for (int tileX = 0; tileX < chunkSize; tileX++) {
-            int idx = tileY * chunkSize + tileX;
-            
-            if (idx >= [chunk->chunkMap count]) continue;
-            
-            U7ChunkIndex *chunkIdx = chunk->chunkMap[idx];
-            long shapeID = chunkIdx->shapeIndex;
-            int frameID = chunkIdx->frameIndex;
-            
-            // Get tile image from U7 shapes
-            UIImage *tileImage = [self getTileImageForShape:shapeID frame:frameID];
-            
-            if (tileImage) {
-                CGRect destRect = CGRectMake(tileX * tileSize, tileY * tileSize, tileSize, tileSize);
-                [tileImage drawInRect:destRect];
-            }
-            
-            // Highlight the tile we're classifying
-            if (idx == tileIndex) {
-                [[UIColor redColor] setStroke];
-                CGContextSetLineWidth(ctx, 2.0);
-                CGRect highlightRect = CGRectMake(tileX * tileSize, tileY * tileSize, tileSize, tileSize);
-                CGContextStrokeRect(ctx, highlightRect);
+            U7ShapeReference *groundRef = [mapChunk groundShapeForLocation:CGPointMake(tileX, tileY) forHeight:0];
+            if (groundRef) {
+                UIImage *objImage = [self getTileImageForShape:groundRef->shapeID frame:groundRef->frameNumber];
+                if (objImage) {
+                    CGRect destRect = CGRectMake(groundRef->xloc * tileSize, groundRef->yloc * tileSize, 
+                                                 objImage.size.width, objImage.size.height);
+                    [objImage drawInRect:destRect];
+                }
             }
         }
     }
     
-    // LAYER 2: Render ground objects (floor items)
-    if (mapChunk->groundObjects) {
-        for (U7ShapeReference *shapeRef in mapChunk->groundObjects) {
-            UIImage *objImage = [self getTileImageForShape:shapeRef->shapeID frame:shapeRef->frameNumber];
-            if (objImage) {
-                CGRect destRect = CGRectMake(shapeRef->xloc * tileSize, shapeRef->yloc * tileSize, tileSize, tileSize);
-                [objImage drawInRect:destRect];
+    // STEP 3: Draw static objects at all height levels
+    // Height 0-15 covers ground level to tall buildings
+    for (int pass = 0; pass < 16; pass++) {
+        for (int tileY = 0; tileY < chunkSize; tileY++) {
+            for (int tileX = 0; tileX < chunkSize; tileX++) {
+                U7ShapeReference *staticRef = [mapChunk staticShapeForLocation:CGPointMake(tileX, tileY) forHeight:pass];
+                if (staticRef) {
+                    UIImage *objImage = [self getTileImageForShape:staticRef->shapeID frame:staticRef->frameNumber];
+                    if (objImage) {
+                        CGRect destRect = CGRectMake(staticRef->xloc * tileSize, staticRef->yloc * tileSize, 
+                                                     objImage.size.width, objImage.size.height);
+                        [objImage drawInRect:destRect];
+                    }
+                }
+                
+                // Also draw game objects at this pass
+                U7ShapeReference *gameRef = [mapChunk gameShapeForLocation:CGPointMake(tileX, tileY) forHeight:pass];
+                if (gameRef) {
+                    UIImage *objImage = [self getTileImageForShape:gameRef->shapeID frame:gameRef->frameNumber];
+                    if (objImage) {
+                        CGRect destRect = CGRectMake(gameRef->xloc * tileSize, gameRef->yloc * tileSize, 
+                                                     objImage.size.width, objImage.size.height);
+                        [objImage drawInRect:destRect];
+                    }
+                }
             }
         }
     }
     
-    // LAYER 3: Render static objects (buildings, trees, mountains, etc.)
-    if (mapChunk->staticItems) {
-        for (U7ShapeReference *shapeRef in mapChunk->staticItems) {
-            UIImage *objImage = [self getTileImageForShape:shapeRef->shapeID frame:shapeRef->frameNumber];
-            if (objImage) {
-                CGRect destRect = CGRectMake(shapeRef->xloc * tileSize, shapeRef->yloc * tileSize, tileSize, tileSize);
-                [objImage drawInRect:destRect];
-            }
-        }
+    // STEP 4: Highlight tile if requested (for old terrain classifier)
+    if (tileIndex >= 0 && tileIndex < 256) {
+        int tileX = tileIndex % chunkSize;
+        int tileY = tileIndex / chunkSize;
+        [[UIColor redColor] setStroke];
+        CGContextSetLineWidth(ctx, 2.0);
+        CGRect highlightRect = CGRectMake(tileX * tileSize, tileY * tileSize, tileSize, tileSize);
+        CGContextStrokeRect(ctx, highlightRect);
     }
     
     UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
@@ -889,7 +898,6 @@
     
     return result;
 }
-
 - (UIImage *)getTileImageForShape:(long)shapeID frame:(int)frameID
 {
     U7Environment *env = u7Env;

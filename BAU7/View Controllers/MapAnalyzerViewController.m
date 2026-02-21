@@ -1059,81 +1059,97 @@
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(imageSize, imageSize), YES, 1.0);
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
-    // STEP 1: Draw the base tile image (terrain) - this is pre-rendered by U7
+    // STEP 1: Draw the base tile image (terrain)
     U7Chunk *masterChunk = mapChunk->masterChunk;
     if (masterChunk->tileImage) {
         [masterChunk->tileImage drawInRect:CGRectMake(0, 0, imageSize, imageSize)];
     } else {
-        // Fallback: black background if no tile image
         [[UIColor blackColor] setFill];
         CGContextFillRect(ctx, CGRectMake(0, 0, imageSize, imageSize));
     }
     
-    // STEP 2: Draw ground objects (pass -1: carpets, floor items at lift 0)
-    int groundCount = 0;
+    // STEP 2: Build array of all shapes (ground, static, game) - like BAMapView does
+    NSMutableArray *allShapes = [NSMutableArray array];
+    
+    // Collect ground objects (lift 0)
     for (int tileY = 0; tileY < chunkSize; tileY++) {
         for (int tileX = 0; tileX < chunkSize; tileX++) {
             U7ShapeReference *groundRef = [mapChunk groundShapeForLocation:CGPointMake(tileX, tileY) forHeight:0];
             if (groundRef) {
-                groundCount++;
-                UIImage *objImage = [self getTileImageForShape:groundRef->shapeID frame:groundRef->frameNumber];
-                if (objImage) {
-                    CGRect destRect = CGRectMake(groundRef->xloc * tileSize, groundRef->yloc * tileSize, 
-                                                 objImage.size.width, objImage.size.height);
-                    [objImage drawInRect:destRect];
-                } else {
-                    NSLog(@"⚠️ Ground shape %ld frame %d has no image", groundRef->shapeID, groundRef->frameNumber);
-                }
+                [allShapes addObject:groundRef];
             }
         }
     }
-    if (groundCount > 0) {
-        NSLog(@"✅ Drew %d ground objects in chunk (%d, %d)", groundCount, chunkX, chunkY);
-    }
     
-    // STEP 3: Draw static objects at all height levels
-    // Height 0-15 covers ground level to tall buildings
-    int staticCount = 0;
-    int gameCount = 0;
+    // Collect static and game objects (all heights)
     for (int pass = 0; pass < 16; pass++) {
         for (int tileY = 0; tileY < chunkSize; tileY++) {
             for (int tileX = 0; tileX < chunkSize; tileX++) {
                 U7ShapeReference *staticRef = [mapChunk staticShapeForLocation:CGPointMake(tileX, tileY) forHeight:pass];
                 if (staticRef) {
-                    staticCount++;
-                    UIImage *objImage = [self getTileImageForShape:staticRef->shapeID frame:staticRef->frameNumber];
-                    if (objImage) {
-                        CGRect destRect = CGRectMake(staticRef->xloc * tileSize, staticRef->yloc * tileSize, 
-                                                     objImage.size.width, objImage.size.height);
-                        [objImage drawInRect:destRect];
-                    } else {
-                        NSLog(@"⚠️ Static shape %ld frame %d has no image", staticRef->shapeID, staticRef->frameNumber);
-                    }
+                    [allShapes addObject:staticRef];
                 }
                 
-                // Also draw game objects at this pass
                 U7ShapeReference *gameRef = [mapChunk gameShapeForLocation:CGPointMake(tileX, tileY) forHeight:pass];
                 if (gameRef) {
-                    gameCount++;
-                    UIImage *objImage = [self getTileImageForShape:gameRef->shapeID frame:gameRef->frameNumber];
-                    if (objImage) {
-                        CGRect destRect = CGRectMake(gameRef->xloc * tileSize, gameRef->yloc * tileSize, 
-                                                     objImage.size.width, objImage.size.height);
-                        [objImage drawInRect:destRect];
-                    } else {
-                        NSLog(@"⚠️ Game shape %ld frame %d has no image", gameRef->shapeID, gameRef->frameNumber);
-                    }
+                    [allShapes addObject:gameRef];
                 }
             }
         }
     }
-    if (staticCount > 0 || gameCount > 0) {
-        NSLog(@"✅ Drew %d static + %d game objects in chunk (%d, %d)", staticCount, gameCount, chunkX, chunkY);
-    } else {
-        NSLog(@"❌ No static or game objects found in chunk (%d, %d)", chunkX, chunkY);
+    
+    // STEP 3: Sort shapes by depth (Y-position * 16 + lift)
+    // This ensures proper layering - objects further back draw first
+    NSArray *sortedShapes = [allShapes sortedArrayUsingComparator:^NSComparisonResult(U7ShapeReference *ref1, U7ShapeReference *ref2) {
+        int depth1 = ref1->parentChunkYCoord * 16 + ref1->lift;
+        int depth2 = ref2->parentChunkYCoord * 16 + ref2->lift;
+        
+        if (depth1 < depth2) return NSOrderedAscending;
+        if (depth1 > depth2) return NSOrderedDescending;
+        
+        // Same depth - sort by X for consistency
+        if (ref1->parentChunkXCoord < ref2->parentChunkXCoord) return NSOrderedAscending;
+        if (ref1->parentChunkXCoord > ref2->parentChunkXCoord) return NSOrderedDescending;
+        
+        return NSOrderedSame;
+    }];
+    
+    // STEP 4: Draw all shapes in sorted order (with proper positioning like BAMapView)
+    U7Environment *env = u7Env;
+    int TILESIZE = 16;
+    int HEIGHTOFFSET = 4;
+    
+    for (U7ShapeReference *ref in sortedShapes) {
+        // Get shape and bitmap
+        if (ref->shapeID < 0 || ref->shapeID >= [env->U7Shapes count]) continue;
+        U7Shape *shape = env->U7Shapes[ref->shapeID];
+        
+        int frameToUse = ref->frameNumber;
+        if (frameToUse < 0 || frameToUse >= [shape->frames count]) frameToUse = 0;
+        
+        U7Bitmap *bitmap = shape->frames[frameToUse];
+        if (!bitmap || !bitmap->image) continue;
+        
+        // Calculate position like BAMapView does
+        CGRect imageFrame;
+        if (shape->tile) {
+            // Tile shapes - simple tile-aligned positioning
+            imageFrame = CGRectMake(ref->parentChunkXCoord * TILESIZE,
+                                    ref->parentChunkYCoord * TILESIZE,
+                                    TILESIZE,
+                                    TILESIZE);
+        } else {
+            // Non-tile shapes - use bitmap offsets and lift
+            CGFloat offsetX = ((ref->parentChunkXCoord + 1) * TILESIZE) + [bitmap reverseTranslateX] - (ref->lift * HEIGHTOFFSET);
+            CGFloat offsetY = ((ref->parentChunkYCoord + 1) * TILESIZE) + [bitmap reverseTranslateY] - (ref->lift * HEIGHTOFFSET);
+            imageFrame = CGRectMake(offsetX, offsetY, bitmap->width, bitmap->height);
+        }
+        
+        // Draw the image
+        [bitmap->image drawInRect:imageFrame];
     }
     
-    // STEP 4: Highlight tile if requested (for old terrain classifier)
+    // STEP 5: Highlight tile if requested (for old terrain classifier)
     if (tileIndex >= 0 && tileIndex < 256) {
         int tileX = tileIndex % chunkSize;
         int tileY = tileIndex / chunkSize;

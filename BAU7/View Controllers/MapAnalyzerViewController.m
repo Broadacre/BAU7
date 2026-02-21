@@ -1144,8 +1144,21 @@
             imageFrame = CGRectMake(offsetX, offsetY, bitmap->width * renderScale, bitmap->height * renderScale);
         }
         
-        // Draw the image
-        [bitmap->image drawInRect:imageFrame];
+        // Draw the image with proper orientation (like BAMapView does)
+        // Default orientation is DownMirrored for Ultima VII graphics
+        UIImageOrientation orientation;
+        if (ref->eulerRotation == 90) {
+            orientation = UIImageOrientationLeft;
+        } else if (ref->eulerRotation == -90) {
+            orientation = UIImageOrientationRight;
+        } else {
+            orientation = UIImageOrientationDownMirrored;
+        }
+        
+        UIImage *orientedImage = [UIImage imageWithCGImage:bitmap->image.CGImage
+                                                     scale:bitmap->image.scale
+                                               orientation:orientation];
+        [orientedImage drawInRect:imageFrame];
     }
     
     // STEP 5: Highlight tile if requested (for old terrain classifier)

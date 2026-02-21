@@ -567,14 +567,14 @@
         }
     }
     
-    // Highlight the current chunk being examined
+    // Highlight the current chunk being examined with red box
     if (_currentChunkX >= 0 && _currentChunkX < mapSize && _currentChunkY >= 0 && _currentChunkY < mapSize) {
-        [[UIColor yellowColor] setStroke];
-        CGContextSetLineWidth(ctx, 2.0);
-        CGRect highlightRect = CGRectMake(_currentChunkX * pixelScale - 1, 
-                                          _currentChunkY * pixelScale - 1, 
-                                          pixelScale + 2, 
-                                          pixelScale + 2);
+        [[UIColor redColor] setStroke];
+        CGContextSetLineWidth(ctx, 3.0);
+        CGRect highlightRect = CGRectMake(_currentChunkX * pixelScale - 1.5, 
+                                          _currentChunkY * pixelScale - 1.5, 
+                                          pixelScale + 3, 
+                                          pixelScale + 3);
         CGContextStrokeRect(ctx, highlightRect);
     }
     

@@ -89,15 +89,16 @@
     _progressLabel.translatesAutoresizingMaskIntoConstraints = NO;
     [_classifierPanel addSubview:_progressLabel];
     
-    // Chunk classification buttons (3 rows of 3)
+    // Chunk classification buttons (4 rows of 3)
     NSArray *chunkTypes = @[@"Water", @"Grass", @"Mountain", 
                             @"Forest", @"Swamp", @"Sand", 
-                            @"Dirt", @"Mixed", @"Other"];
+                            @"Dirt", @"Mixed", @"Transition",
+                            @"Other"];
     CGFloat buttonWidth = 80;
     CGFloat buttonHeight = 40;
     CGFloat spacing = 10;
     
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 10; i++) {
         UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
         [btn setTitle:chunkTypes[i] forState:UIControlStateNormal];
         btn.tag = i + 1; // Category index
@@ -117,6 +118,22 @@
                                            constant:(10 + row * (buttonHeight + spacing))]
         ]];
     }
+    
+    // Skip button (bottom row, right side)
+    UIButton *skipBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+    [skipBtn setTitle:@"Skip" forState:UIControlStateNormal];
+    [skipBtn addTarget:self action:@selector(skipChunk:) forControlEvents:UIControlEventTouchUpInside];
+    skipBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    [_classifierPanel addSubview:skipBtn];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [skipBtn.widthAnchor constraintEqualToConstant:buttonWidth],
+        [skipBtn.heightAnchor constraintEqualToConstant:buttonHeight],
+        [skipBtn.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor 
+                                              constant:(10 + 2 * (buttonWidth + spacing))],
+        [skipBtn.topAnchor constraintEqualToAnchor:_progressLabel.bottomAnchor 
+                                           constant:(10 + 3 * (buttonHeight + spacing))]
+    ]];
     
     // Results text view (below classifier)
     _resultsTextView = [[UITextView alloc] initWithFrame:CGRectZero];
@@ -506,15 +523,16 @@
     
     // Color mapping for terrain types
     NSDictionary *colorMap = @{
-        @"Water":    [UIColor colorWithRed:0.15 green:0.35 blue:0.75 alpha:1.0],
-        @"Grass":    [UIColor colorWithRed:0.2 green:0.7 blue:0.2 alpha:1.0],
-        @"Mountain": [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0],
-        @"Forest":   [UIColor colorWithRed:0.20 green:0.50 blue:0.25 alpha:1.0],
-        @"Swamp":    [UIColor colorWithRed:0.6 green:0.8 blue:0.6 alpha:1.0],
-        @"Sand":     [UIColor colorWithRed:0.82 green:0.71 blue:0.55 alpha:1.0],
-        @"Dirt":     [UIColor colorWithRed:0.55 green:0.35 blue:0.20 alpha:1.0],
-        @"Mixed":    [UIColor colorWithRed:0.5 green:0.5 blue:0.3 alpha:1.0],
-        @"Other":    [UIColor colorWithRed:0.6 green:0.2 blue:0.8 alpha:1.0]
+        @"Water":     [UIColor colorWithRed:0.15 green:0.35 blue:0.75 alpha:1.0],
+        @"Grass":     [UIColor colorWithRed:0.2 green:0.7 blue:0.2 alpha:1.0],
+        @"Mountain":  [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0],
+        @"Forest":    [UIColor colorWithRed:0.20 green:0.50 blue:0.25 alpha:1.0],
+        @"Swamp":     [UIColor colorWithRed:0.6 green:0.8 blue:0.6 alpha:1.0],
+        @"Sand":      [UIColor colorWithRed:0.82 green:0.71 blue:0.55 alpha:1.0],
+        @"Dirt":      [UIColor colorWithRed:0.55 green:0.35 blue:0.20 alpha:1.0],
+        @"Mixed":     [UIColor colorWithRed:0.5 green:0.5 blue:0.3 alpha:1.0],
+        @"Transition":[UIColor colorWithRed:1.0 green:0.7 blue:0.0 alpha:1.0],  // Orange/yellow
+        @"Other":     [UIColor colorWithRed:0.6 green:0.2 blue:0.8 alpha:1.0]
     };
     
     UIColor *unclassifiedColor = [UIColor darkGrayColor];
@@ -910,7 +928,7 @@
     }
     
     NSArray *categories = @[@"Water", @"Grass", @"Mountain", @"Forest", 
-                           @"Swamp", @"Sand", @"Dirt", @"Mixed", @"Other"];
+                           @"Swamp", @"Sand", @"Dirt", @"Mixed", @"Transition", @"Other"];
     
     if (sender.tag < 1 || sender.tag > [categories count]) {
         NSLog(@"❌ Invalid button tag %ld", (long)sender.tag);
@@ -935,6 +953,30 @@
     [self displayCurrentChunk];
     
     [self updateHeatMapWithClassifications];
+}
+
+- (void)skipChunk:(UIButton *)sender
+{
+    if (_currentChunkIndex >= [_sortedMasterChunkIDs count]) {
+        NSLog(@"✅ No more chunks to skip");
+        return;
+    }
+    
+    NSNumber *skippedChunkID = _sortedMasterChunkIDs[_currentChunkIndex];
+    NSLog(@"⏭️ Skipping masterChunk %@ (moved to end of queue)", skippedChunkID);
+    
+    // Remove from current position
+    NSMutableArray *mutableIDs = [_sortedMasterChunkIDs mutableCopy];
+    [mutableIDs removeObjectAtIndex:_currentChunkIndex];
+    
+    // Add to end
+    [mutableIDs addObject:skippedChunkID];
+    
+    _sortedMasterChunkIDs = [mutableIDs copy];
+    
+    // Display next chunk (index stays same since we removed current one)
+    [self skipAlreadyClassified];
+    [self displayCurrentChunk];
 }
 - (void)loadNextCombo
 {

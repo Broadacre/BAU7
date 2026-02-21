@@ -1122,12 +1122,12 @@
     for (U7ShapeReference *ref in sortedShapes) {
         // Get shape and bitmap
         if (ref->shapeID < 0 || ref->shapeID >= [env->U7Shapes count]) continue;
-        U7Shape *shape = env->U7Shapes[ref->shapeID];
+        U7Shape *shape = [env->U7Shapes objectAtIndex:ref->shapeID];
         
         int frameToUse = ref->frameNumber;
         if (frameToUse < 0 || frameToUse >= [shape->frames count]) frameToUse = 0;
         
-        U7Bitmap *bitmap = shape->frames[frameToUse];
+        U7Bitmap *bitmap = [shape->frames objectAtIndex:frameToUse];
         if (!bitmap || !bitmap->image) continue;
         
         // Calculate position like BAMapView does
@@ -1178,14 +1178,14 @@
     }
     
     // Get shape from U7Shapes array
-    U7Shape *shape = env->U7Shapes[shapeID];
+    U7Shape *shape = [env->U7Shapes objectAtIndex:shapeID];
     
     if (!shape || !shape->frames || frameID >= [shape->frames count]) {
         return nil;
     }
     
     // Get frame bitmap
-    U7Bitmap *frameBitmap = shape->frames[frameID];
+    U7Bitmap *frameBitmap = [shape->frames objectAtIndex:frameID];
     
     if (!frameBitmap || !frameBitmap->image) {
         return nil;

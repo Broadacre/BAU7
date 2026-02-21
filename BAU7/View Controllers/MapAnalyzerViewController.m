@@ -1115,9 +1115,8 @@
     }];
     
     // STEP 4: Draw all shapes in sorted order (with proper positioning like BAMapView)
-    U7Environment *env = u7Env;
-    int TILESIZE = 16;
-    int HEIGHTOFFSET = 4;
+    // Use same scale as tileSize (16 pixels per tile for 256x256 chunk rendering)
+    float renderScale = tileSize / (float)TILESIZE; // Should be 2.0 (16/8)
     
     for (U7ShapeReference *ref in sortedShapes) {
         // Get shape and bitmap
@@ -1130,19 +1129,19 @@
         U7Bitmap *bitmap = [shape->frames objectAtIndex:frameToUse];
         if (!bitmap || !bitmap->image) continue;
         
-        // Calculate position like BAMapView does
+        // Calculate position like BAMapView does (scaled to our rendering size)
         CGRect imageFrame;
         if (shape->tile) {
             // Tile shapes - simple tile-aligned positioning
-            imageFrame = CGRectMake(ref->parentChunkXCoord * TILESIZE,
-                                    ref->parentChunkYCoord * TILESIZE,
-                                    TILESIZE,
-                                    TILESIZE);
+            imageFrame = CGRectMake(ref->parentChunkXCoord * tileSize,
+                                    ref->parentChunkYCoord * tileSize,
+                                    tileSize,
+                                    tileSize);
         } else {
-            // Non-tile shapes - use bitmap offsets and lift
-            CGFloat offsetX = ((ref->parentChunkXCoord + 1) * TILESIZE) + [bitmap reverseTranslateX] - (ref->lift * HEIGHTOFFSET);
-            CGFloat offsetY = ((ref->parentChunkYCoord + 1) * TILESIZE) + [bitmap reverseTranslateY] - (ref->lift * HEIGHTOFFSET);
-            imageFrame = CGRectMake(offsetX, offsetY, bitmap->width, bitmap->height);
+            // Non-tile shapes - use bitmap offsets and lift, scaled to render size
+            CGFloat offsetX = ((ref->parentChunkXCoord + 1) * tileSize) + ([bitmap reverseTranslateX] * renderScale) - (ref->lift * HEIGHTOFFSET * renderScale);
+            CGFloat offsetY = ((ref->parentChunkYCoord + 1) * tileSize) + ([bitmap reverseTranslateY] * renderScale) - (ref->lift * HEIGHTOFFSET * renderScale);
+            imageFrame = CGRectMake(offsetX, offsetY, bitmap->width * renderScale, bitmap->height * renderScale);
         }
         
         // Draw the image

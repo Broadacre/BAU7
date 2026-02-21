@@ -219,7 +219,7 @@
         [_progressLabel.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
         
         // Results text at bottom (buttons are positioned relative to progressLabel in loop above)
-        [_resultsTextView.topAnchor constraintEqualToAnchor:_progressLabel.bottomAnchor constant:120], // Space for 2 rows of buttons
+        [_resultsTextView.topAnchor constraintEqualToAnchor:_progressLabel.bottomAnchor constant:210], // Space for 4 rows of buttons + Skip
         [_resultsTextView.leadingAnchor constraintEqualToAnchor:_classifierPanel.leadingAnchor],
         [_resultsTextView.trailingAnchor constraintEqualToAnchor:_classifierPanel.trailingAnchor],
         [_resultsTextView.bottomAnchor constraintEqualToAnchor:_classifierPanel.bottomAnchor],

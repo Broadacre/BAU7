@@ -23,6 +23,8 @@
     _masterChunkHistogram = [NSMutableDictionary dictionary];
     _sortedMasterChunkIDs = @[];
     _currentChunkIndex = 0;
+    _currentChunkX = -1; // No chunk selected yet
+    _currentChunkY = -1;
     
     // Heat map scroll view (left side)
     _heatMapScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
@@ -464,6 +466,10 @@
     int exampleY = [entry[@"exampleY"] intValue];
     int count = [entry[@"count"] intValue];
     
+    // Store current chunk position for heat map highlight
+    _currentChunkX = exampleX;
+    _currentChunkY = exampleY;
+    
     // Count how many are already classified
     int classifiedCount = 0;
     for (NSNumber *chunkID in _sortedMasterChunkIDs) {
@@ -559,6 +565,17 @@
             CGRect pixelRect = CGRectMake(x * pixelScale, y * pixelScale, pixelScale, pixelScale);
             CGContextFillRect(ctx, pixelRect);
         }
+    }
+    
+    // Highlight the current chunk being examined
+    if (_currentChunkX >= 0 && _currentChunkX < mapSize && _currentChunkY >= 0 && _currentChunkY < mapSize) {
+        [[UIColor yellowColor] setStroke];
+        CGContextSetLineWidth(ctx, 2.0);
+        CGRect highlightRect = CGRectMake(_currentChunkX * pixelScale - 1, 
+                                          _currentChunkY * pixelScale - 1, 
+                                          pixelScale + 2, 
+                                          pixelScale + 2);
+        CGContextStrokeRect(ctx, highlightRect);
     }
     
     UIImage *heatMap = UIGraphicsGetImageFromCurrentImageContext();

@@ -29,6 +29,8 @@
 @property (nonatomic, strong) NSMutableDictionary *masterChunkHistogram; // masterChunkID → {count, exampleX, exampleY}
 @property (nonatomic, strong) NSArray *sortedMasterChunkIDs; // sorted by occurrence count
 @property (nonatomic, assign) NSInteger currentChunkIndex;
+@property (nonatomic, assign) int currentChunkX; // X coordinate of chunk being examined
+@property (nonatomic, assign) int currentChunkY; // Y coordinate of chunk being examined
 
 // Old terrain mapping system (still used by export/load methods)
 @property (nonatomic, strong) NSMutableDictionary *terrainMappings;

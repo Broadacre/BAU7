@@ -93,12 +93,12 @@
     NSArray *chunkTypes = @[@"Water", @"Grass", @"Mountain", 
                             @"Forest", @"Swamp", @"Sand", 
                             @"Dirt", @"Mixed", @"Transition",
-                            @"Other"];
+                            @"Jungle", @"Other"];
     CGFloat buttonWidth = 80;
     CGFloat buttonHeight = 40;
     CGFloat spacing = 10;
     
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 11; i++) {
         UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
         [btn setTitle:chunkTypes[i] forState:UIControlStateNormal];
         btn.tag = i + 1; // Category index
@@ -532,6 +532,7 @@
         @"Dirt":      [UIColor colorWithRed:0.55 green:0.35 blue:0.20 alpha:1.0],
         @"Mixed":     [UIColor colorWithRed:0.5 green:0.5 blue:0.3 alpha:1.0],
         @"Transition":[UIColor colorWithRed:1.0 green:0.7 blue:0.0 alpha:1.0],  // Orange/yellow
+        @"Jungle":    [UIColor colorWithRed:0.0 green:0.6 blue:0.3 alpha:1.0],  // Tropical green
         @"Other":     [UIColor colorWithRed:0.6 green:0.2 blue:0.8 alpha:1.0]
     };
     
@@ -928,7 +929,7 @@
     }
     
     NSArray *categories = @[@"Water", @"Grass", @"Mountain", @"Forest", 
-                           @"Swamp", @"Sand", @"Dirt", @"Mixed", @"Transition", @"Other"];
+                           @"Swamp", @"Sand", @"Dirt", @"Mixed", @"Transition", @"Jungle", @"Other"];
     
     if (sender.tag < 1 || sender.tag > [categories count]) {
         NSLog(@"❌ Invalid button tag %ld", (long)sender.tag);
